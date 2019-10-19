@@ -33,8 +33,8 @@ const createConfig = (env, argv) => {
 
     output: {
       path: path.resolve(__dirname, 'dist'),
-      filename: 'substation.js',
-      library: 'substation',
+      filename: 'turbine.js',
+      library: 'turbine',
       libraryTarget: 'umd',
     },
 
