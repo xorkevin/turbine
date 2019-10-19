@@ -1,5 +1,5 @@
 {
-  "name": "turbine",
+  "name": "@xorkevin/turbine",
   "version": "0.1.0",
   "description": "a redux based authentication engine for governor",
   "publishConfig": {
