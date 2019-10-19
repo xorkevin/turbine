@@ -8,7 +8,7 @@ import {
   getSearchParams,
   searchParamsToString,
 } from 'utility';
-import userAPIConfig from 'apiconfig';
+import GovAuthAPI from 'apiconfig';
 
 // Actions
 
@@ -317,7 +317,7 @@ const AntiProtected = (child) => {
 export {
   Auth as default,
   Auth,
-  userAPIConfig,
+  GovAuthAPI,
   AuthContext,
   useAuthState,
   useLoginCall,
