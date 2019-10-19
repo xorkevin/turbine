@@ -52,6 +52,6 @@
     "redux": "^4.0.0"
   },
   "dependencies": {
-    "@xorkevin/substation": "^0.1.0"
+    "@xorkevin/substation": "^0.1.1"
   }
 }
