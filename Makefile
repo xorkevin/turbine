@@ -1,4 +1,9 @@
-.PHONY: build
+.PHONY: all build clean
 
-build:
+all: build
+
+build: clean
 	npm run build
+
+clean:
+	rm -rf dist
