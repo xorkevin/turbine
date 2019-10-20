@@ -1,6 +1,6 @@
 {
   "name": "@xorkevin/turbine",
-  "version": "0.1.5-0",
+  "version": "0.1.5",
   "description": "a redux based authentication engine for governor",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
