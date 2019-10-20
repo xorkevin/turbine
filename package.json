@@ -1,6 +1,6 @@
 {
   "name": "@xorkevin/turbine",
-  "version": "0.1.4",
+  "version": "0.1.5-0",
   "description": "a redux based authentication engine for governor",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
@@ -49,9 +49,7 @@
     "react-redux": "^7.1.0",
     "react-router": "^5.1.0",
     "react-router-dom": "^5.1.0",
-    "redux": "^4.0.0"
-  },
-  "dependencies": {
+    "redux": "^4.0.0",
     "@xorkevin/substation": "^0.1.2"
   }
 }
