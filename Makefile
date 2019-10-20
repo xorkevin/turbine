@@ -1,4 +1,4 @@
-.PHONY: all build clean
+.PHONY: all build clean publish
 
 all: build
 
@@ -7,3 +7,6 @@ build: clean
 
 clean:
 	rm -rf dist
+
+publish: build
+	npm publish
