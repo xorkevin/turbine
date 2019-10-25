@@ -25,6 +25,7 @@
     "@babel/core": "^7.6.4",
     "@babel/preset-env": "^7.6.3",
     "@babel/preset-react": "^7.6.3",
+    "@xorkevin/substation": "^0.1.2",
     "babel-eslint": "^10.0.3",
     "babel-loader": "^8.0.6",
     "eslint": "^6.5.1",
@@ -51,5 +52,6 @@
     "react-router-dom": "^5.1.0",
     "redux": "^4.0.0",
     "@xorkevin/substation": "^0.1.2"
-  }
+  },
+  "dependencies": {}
 }
