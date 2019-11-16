@@ -43,7 +43,10 @@ export default {
           confirm: {
             url: '/verify',
             method: 'PUT',
-            transformer: (key, password) => [null, {key, password}],
+            transformer: (userid, key, password) => [
+              null,
+              {userid, key, password},
+            ],
             expectdata: false,
             err: 'Could not edit email',
           },
@@ -74,7 +77,10 @@ export default {
           confirm: {
             url: '/reset',
             method: 'PUT',
-            transformer: (key, new_password) => [null, {key, new_password}],
+            transformer: (userid, key, new_password) => [
+              null,
+              {userid, key, new_password},
+            ],
             expectdata: false,
             err: 'Could not reset password',
           },
@@ -158,7 +164,7 @@ export default {
       confirm: {
         url: '/confirm',
         method: 'POST',
-        transformer: (key) => [null, {key}],
+        transformer: (email, key) => [null, {email, key}],
         expectdata: true,
         err: 'Could not create account',
       },
