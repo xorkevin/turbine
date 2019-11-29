@@ -12,20 +12,16 @@ import GovAuthAPI from 'apiconfig';
 
 // Actions
 
+const secondsDay = 86400;
+const getRefreshTime = () => Date.now() / 1000 + secondsDay; // time is in seconds
+
 const LOGIN_SUCCESS = Symbol('LOGIN_SUCCESS');
-const LoginSuccess = (userid, authTags, timeEnd) => ({
+const LoginSuccess = (userid, authTags, timeEnd, refresh = false) => ({
   type: LOGIN_SUCCESS,
   userid,
   authTags,
   timeEnd, // timeEnd is in seconds
-});
-
-const secondsDay = 86400;
-
-const LOGIN_REFRESH = Symbol('LOGIN_REFRESH');
-const Refresh = () => ({
-  type: LOGIN_REFRESH,
-  time: Date.now() / 1000 + secondsDay, // time is in seconds
+  refresh: refresh ? getRefreshTime() : false,
 });
 
 const LOGOUT = Symbol('LOGOUT');
@@ -40,6 +36,7 @@ const defaultState = Object.freeze({
   authTags: '',
   timeEnd: 0,
   timeRefresh: 0,
+  loadingPromise: Promise.resolve(),
 });
 
 const initState = () => {
@@ -60,10 +57,7 @@ const Auth = (state = initState(), action) => {
         userid: action.userid,
         authTags: action.authTags,
         timeEnd: action.timeEnd,
-      });
-    case LOGIN_REFRESH:
-      return Object.assign({}, state, {
-        timeRefresh: action.time,
+        timeRefresh: action.refresh ? action.refresh : state.timeRefresh,
       });
     case LOGOUT:
       return Object.assign({}, defaultState, {valid: true});
@@ -127,8 +121,7 @@ const useLoginCall = (username, password) => {
       return;
     }
     const {userid, authTags, time} = data;
-    dispatch(Refresh());
-    dispatch(LoginSuccess(userid, authTags, time));
+    dispatch(LoginSuccess(userid, authTags, time, true));
   }, [dispatch, execute]);
 
   return [apiState, login];
@@ -163,9 +156,8 @@ const useRelogin = () => {
         }
         return [data, status, err];
       }
-      dispatch(Refresh());
       const {userid, authTags, time} = data;
-      dispatch(LoginSuccess(userid, authTags, time));
+      dispatch(LoginSuccess(userid, authTags, time, true));
       return [data, status, err];
     }
     const [data, status, err] = await execEx();
