@@ -36,7 +36,6 @@ const defaultState = Object.freeze({
   authTags: '',
   timeEnd: 0,
   timeRefresh: 0,
-  loadingPromise: Promise.resolve(),
 });
 
 const initState = () => {
@@ -77,6 +76,7 @@ const DefaultTurbineValue = Object.freeze({
   paramName: 'redir',
   homePath: '/',
   loginPath: '/x/login',
+  authLoading: Promise.resolve(),
 });
 const AuthContext = React.createContext(DefaultTurbineValue);
 
@@ -103,8 +103,8 @@ const useLogout = () => {
 };
 
 const useLoginCall = (username, password) => {
-  const dispatch = useDispatch();
   const ctx = useContext(AuthContext);
+  const dispatch = useDispatch();
   const [apiState, execute] = useAPICall(
     ctx.selectAPILogin,
     [username, password],
@@ -128,15 +128,17 @@ const useLoginCall = (username, password) => {
 };
 
 const useRelogin = () => {
-  const dispatch = useDispatch();
   const ctx = useContext(AuthContext);
+  const dispatch = useDispatch();
   const store = useStore();
   const execEx = useAPI(ctx.selectAPIExchange);
   const execRe = useAPI(ctx.selectAPIRefresh);
   const execLogout = useLogout();
 
-  const relogin = useCallback(async () => {
-    const {loggedIn, timeEnd, timeRefresh} = store.getState().Auth;
+  const reloginCall = useCallback(async () => {
+    const {loggedIn, timeEnd, timeRefresh} = ctx.selectReducerAuth(
+      store.getState(),
+    );
     if (!loggedIn) {
       return [null, -1, 'Not logged in'];
     }
@@ -151,7 +153,7 @@ const useRelogin = () => {
     if (Date.now() / 1000 > timeRefresh) {
       const [data, status, err] = await execRe();
       if (err) {
-        if (status !== -1) {
+        if (status > 0) {
           execLogout();
         }
         return [data, status, err];
@@ -162,7 +164,7 @@ const useRelogin = () => {
     }
     const [data, status, err] = await execEx();
     if (err) {
-      if (status !== -1) {
+      if (status > 0) {
         execLogout();
       }
       return [data, status, err];
@@ -170,7 +172,12 @@ const useRelogin = () => {
     const {userid, authTags, time} = data;
     dispatch(LoginSuccess(userid, authTags, time));
     return [data, status, err];
-  }, [dispatch, store, execEx, execRe, execLogout]);
+  }, [ctx, dispatch, store, execEx, execRe, execLogout]);
+
+  const relogin = useCallback(() => {
+    ctx.authLoading = ctx.authLoading.then(reloginCall);
+    return ctx.authLoading;
+  }, [ctx, reloginCall]);
 
   return relogin;
 };
@@ -311,6 +318,7 @@ export {
   Auth,
   GovAuthAPI,
   AuthContext,
+  DefaultTurbineValue,
   useAuthState,
   useLoginCall,
   useRelogin,
