@@ -67,7 +67,7 @@ const Auth = (state = initState(), action) => {
 
 // Hooks
 
-const DefaultTurbineValue = Object.freeze({
+const DefaultTurbineValue = {
   selectReducerAuth: (store) => store.Auth,
   selectAPILogin: (api) => api.u.auth.login,
   selectAPIExchange: (api) => api.u.auth.exchange,
@@ -77,7 +77,7 @@ const DefaultTurbineValue = Object.freeze({
   homePath: '/',
   loginPath: '/x/login',
   authLoading: Promise.resolve(),
-});
+};
 const AuthContext = React.createContext(DefaultTurbineValue);
 
 const useAuthState = () => {
