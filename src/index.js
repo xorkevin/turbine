@@ -115,7 +115,7 @@ const useLoginCall = (username, password) => {
     },
   );
 
-  const login = useCallback(async () => {
+  const loginCall = useCallback(async () => {
     const [data, _status, err] = await execute();
     if (err) {
       return;
@@ -123,6 +123,11 @@ const useLoginCall = (username, password) => {
     const {userid, authTags, time} = data;
     dispatch(LoginSuccess(userid, authTags, time, true));
   }, [dispatch, execute]);
+
+  const login = useCallback(() => {
+    ctx.authLoading = ctx.authLoading.then(loginCall);
+    return ctx.authLoading;
+  }, [ctx]);
 
   return [apiState, login];
 };
