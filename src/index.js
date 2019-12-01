@@ -127,7 +127,7 @@ const useLoginCall = (username, password) => {
   const login = useCallback(() => {
     ctx.authLoading = ctx.authLoading.then(loginCall);
     return ctx.authLoading;
-  }, [ctx]);
+  }, [ctx, loginCall]);
 
   return [apiState, login];
 };
