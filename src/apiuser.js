@@ -7,11 +7,15 @@ export default {
   },
   sessions: {
     url: '/sessions',
-    method: 'GET',
-    expectdata: true,
-    selector: (_status, data) => data && data.active_sessions,
-    err: 'Could not get sessions',
     children: {
+      get: {
+        url: '?amount={0}&offset={1}',
+        method: 'GET',
+        transformer: (amount, offset) => [[amount, offset], null],
+        expectdata: true,
+        selector: (_status, data) => data && data.active_sessions,
+        err: 'Could not get sessions',
+      },
       del: {
         url: '',
         method: 'DELETE',
