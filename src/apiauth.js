@@ -5,7 +5,8 @@ export default {
     transformer: (username, password) => [null, {username, password}],
     expectdata: true,
     selector: (_status, data) => {
-      const {userid, auth_tags: authTags, exp: time} = data.claims;
+      const {userid, exp: time} = data.claims;
+      const authTags = data.auth_tags;
       return {
         userid,
         authTags,
@@ -19,7 +20,8 @@ export default {
     method: 'POST',
     expectdata: true,
     selector: (_status, data) => {
-      const {userid, auth_tags: authTags, exp: time} = data.claims;
+      const {userid, exp: time} = data.claims;
+      const authTags = data.auth_tags;
       return {
         userid,
         authTags,
@@ -33,7 +35,8 @@ export default {
     method: 'POST',
     expectdata: true,
     selector: (_status, data) => {
-      const {userid, auth_tags: authTags, exp: time} = data.claims;
+      const {userid, exp: time} = data.claims;
+      const authTags = data.auth_tags;
       return {
         userid,
         authTags,
