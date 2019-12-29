@@ -1,5 +1,6 @@
 import authAPI from './apiauth';
 import userAPI from './apiuser';
+import apikeyAPI from './apiapikey';
 
 const user = (url = '/u') => ({
   url,
@@ -11,6 +12,10 @@ const user = (url = '/u') => ({
     auth: {
       url: '/auth',
       children: authAPI,
+    },
+    apikey: {
+      url: '/apikey',
+      children: apikeyAPI,
     },
   },
 });
