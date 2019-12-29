@@ -13,7 +13,7 @@ import GovAuthAPI from 'apiconfig';
 // Actions
 
 const secondsDay = 86400;
-const getRefreshTime = () => Date.now() / 1000 + secondsDay; // time is in seconds
+const getRefreshTime = () => Math.floor(Date.now() / 1000) + secondsDay; // time is in seconds
 
 const LOGIN_SUCCESS = Symbol('LOGIN_SUCCESS');
 const LoginSuccess = (userid, authTags, timeEnd, refresh = false) => ({
