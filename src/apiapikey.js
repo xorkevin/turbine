@@ -7,6 +7,17 @@ export default {
     selector: (_status, data) => data && data.apikeys,
     err: 'Could not get apikeys',
   },
+  check: {
+    url: '?authtags={0}',
+    method: 'GET',
+    transformer: (keyid, key, auth_tags) => [
+      [auth_tags],
+      null,
+      {Authorization: `Basic ${btoa(keyid + ':' + key)}`},
+    ],
+    expectdata: true,
+    err: 'Could not create apikey',
+  },
   create: {
     url: '',
     method: 'POST',
@@ -26,6 +37,13 @@ export default {
         ],
         expectdata: false,
         err: 'Could not edit apikey',
+      },
+      rotate: {
+        url: '/rotate',
+        method: 'PUT',
+        transformer: (keyid) => [[keyid], null],
+        expectdata: true,
+        err: 'Could not rotate apikey',
       },
       del: {
         url: '',
