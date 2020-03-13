@@ -8,7 +8,7 @@ export default {
     err: 'Could not get apikeys',
   },
   check: {
-    url: '?authtags={0}',
+    url: '/check?authtags={0}',
     method: 'GET',
     transformer: (keyid, key, auth_tags) => [
       [auth_tags],
