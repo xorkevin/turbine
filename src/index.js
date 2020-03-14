@@ -29,6 +29,19 @@ const Logout = () => ({type: LOGOUT});
 
 // Reducer
 
+const storeUser = (userid, user) => {
+  localStorage.setItem(`user:${userid}`, JSON.stringify(user));
+};
+
+const retrieveUser = (userid) => {
+  const k = localStorage.getItem(`user:${userid}`);
+  try {
+    return JSON.parse(k);
+  } catch (_e) {
+    return null;
+  }
+};
+
 const defaultState = Object.freeze({
   valid: false,
   loggedIn: false,
@@ -40,10 +53,14 @@ const defaultState = Object.freeze({
 
 const initState = () => {
   const k = {valid: true};
-  if (getCookie('refresh_valid') === 'valid') {
+  const userid = getCookie('userid');
+  if (userid) {
     k.loggedIn = true;
-    k.userid = getCookie('userid');
-    k.authTags = getCookie('auth_tags').replace(/^"+|"+$/g, '');
+    k.userid = userid;
+    const user = retrieveUser(userid);
+    if (user) {
+      k.authTags = user.authTags;
+    }
   }
   return Object.assign({}, defaultState, k);
 };
@@ -72,6 +89,8 @@ const DefaultTurbineValue = {
   selectAPILogin: (api) => api.u.auth.login,
   selectAPIExchange: (api) => api.u.auth.exchange,
   selectAPIRefresh: (api) => api.u.auth.refresh,
+  apiURL: '/api',
+  authURL: '/api/u/auth',
   fallback: 'Unauthorized',
   paramName: 'redir',
   homePath: '/',
@@ -85,20 +104,19 @@ const useAuthState = () => {
   return useSelector(ctx.selectReducerAuth);
 };
 
-const logoutCookies = () => {
-  setCookie('access_token', 'invalid', '/api', 0);
-  setCookie('refresh_token', 'invalid', '/api/u/auth', 0);
-  setCookie('refresh_valid', 'invalid', '/', 0);
-  setCookie('auth_tags', 'invalid', '/', 0);
+const logoutCookies = (apiURL, authURL) => {
+  setCookie('access_token', 'invalid', apiURL, 0);
+  setCookie('refresh_token', 'invalid', authURL, 0);
   setCookie('userid', 'invalid', '/', 0);
 };
 
 const useLogout = () => {
+  const ctx = useContext(AuthContext);
   const dispatch = useDispatch();
   const logout = useCallback(() => {
-    logoutCookies();
+    logoutCookies(ctx.apiURL, ctx.authURL);
     dispatch(Logout());
-  }, [dispatch]);
+  }, [dispatch, ctx.apiURL, ctx.authURL]);
   return logout;
 };
 
@@ -121,6 +139,7 @@ const useLoginCall = (username, password) => {
       return;
     }
     const {userid, authTags, time} = data;
+    storeUser(userid, {authTags});
     dispatch(LoginSuccess(userid, authTags, time, true));
   }, [dispatch, execute]);
 
@@ -150,8 +169,8 @@ const useRelogin = () => {
     if (Date.now() / 1000 + 5 < timeEnd) {
       return [null, 0, null];
     }
-    const refreshValid = getCookie('refresh_valid');
-    if (refreshValid !== 'valid') {
+    const isLoggedIn = getCookie('userid');
+    if (!isLoggedIn) {
       execLogout();
       return [null, -1, 'Session expired'];
     }
@@ -164,6 +183,7 @@ const useRelogin = () => {
         return [data, status, err];
       }
       const {userid, authTags, time} = data;
+      storeUser(userid, {authTags});
       dispatch(LoginSuccess(userid, authTags, time, true));
       return [data, status, err];
     }
@@ -175,6 +195,7 @@ const useRelogin = () => {
       return [data, status, err];
     }
     const {userid, authTags, time} = data;
+    storeUser(userid, {authTags});
     dispatch(LoginSuccess(userid, authTags, time));
     return [data, status, err];
   }, [ctx, dispatch, store, execEx, execRe, execLogout]);
