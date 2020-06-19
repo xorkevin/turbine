@@ -7,8 +7,8 @@ import {
   setCookie,
   getSearchParams,
   searchParamsToString,
-} from 'utility';
-import GovAuthAPI from 'apiconfig';
+} from './utility';
+import GovAuthAPI from './src/apiconfig';
 
 // Actions
 

@@ -1,6 +1,6 @@
 {
   "name": "@xorkevin/turbine",
-  "version": "0.1.10",
+  "version": "0.1.11-0",
   "description": "a redux based authentication engine for governor",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
@@ -8,7 +8,7 @@
   "main": "dist/turbine.js",
   "sideEffects": false,
   "scripts": {
-    "build": "webpack --mode production --progress --color",
+    "lint": "eslint .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -22,29 +22,15 @@
   },
   "homepage": "https://github.com/xorkevin/turbine#readme",
   "devDependencies": {
-    "@babel/core": "^7.8.7",
-    "@babel/preset-env": "^7.8.7",
-    "@babel/preset-react": "^7.8.3",
-    "@xorkevin/substation": "^0.1.3",
     "babel-eslint": "^10.1.0",
-    "babel-loader": "^8.0.6",
-    "core-js": "^3.6.4",
     "eslint": "^6.8.0",
-    "eslint-config-prettier": "^6.10.0",
-    "eslint-loader": "^3.0.3",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-loader": "^3.0.4",
     "eslint-plugin-babel": "^5.3.0",
-    "eslint-plugin-react": "^7.19.0",
-    "eslint-plugin-react-hooks": "^2.5.0",
+    "eslint-plugin-react": "^7.20.0",
+    "eslint-plugin-react-hooks": "^2.5.1",
     "prettier": "^1.19.1",
-    "react": "^16.13.0",
-    "react-redux": "^7.2.0",
-    "react-router": "^5.1.2",
-    "react-router-dom": "^5.1.2",
-    "redux": "^4.0.5",
-    "terser-webpack-plugin": "^2.3.5",
-    "webpack": "^4.42.0",
-    "webpack-cli": "^3.3.11",
-    "webpack-node-externals": "^1.7.2"
+    "react": "^16.13.1"
   },
   "peerDependencies": {
     "react": "^16.9.0",
@@ -52,7 +38,6 @@
     "react-router": "^5.1.0",
     "react-router-dom": "^5.1.0",
     "redux": "^4.0.0",
-    "core-js": "^3.0.0",
     "@xorkevin/substation": "^0.1.3"
   },
   "dependencies": {}

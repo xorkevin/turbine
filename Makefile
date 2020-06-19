@@ -1,12 +1,9 @@
-.PHONY: all build clean publish
+.PHONY: all lint publish
 
-all: build
+all: lint
 
-build: clean
-	npm run build
+lint:
+	npm run lint
 
-clean:
-	rm -rf dist
-
-publish: build
+publish: lint
 	npm publish
