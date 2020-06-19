@@ -30,8 +30,14 @@ const setupz = () => ({
 const healthz = () => ({
   url: '/healthz',
   children: {
-    report: {
-      url: '/report',
+    live: {
+      url: '/live',
+      method: 'GET',
+      expectdata: false,
+      err: 'Could not get health report from api server',
+    },
+    ready: {
+      url: '/ready',
       method: 'GET',
       expectdata: true,
       err: 'Could not get health report from api server',
