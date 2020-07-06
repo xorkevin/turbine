@@ -332,7 +332,7 @@ const AntiProtected = (child) => {
           search: searchParamsToString(searchParams),
         });
       }
-    }, [ctx.homePath, ctx.paramName, loggedIn, search, history]);
+    }, [ctx, loggedIn, search, history]);
 
     return React.createElement(child, props);
   };
