@@ -1,6 +1,6 @@
 import React, {useEffect, useCallback, useMemo, useContext} from 'react';
 import {useLocation, useHistory} from 'react-router-dom';
-import {useSelector, useDispatch, useStore} from 'react-redux';
+import {atom, useRecoilState} from 'recoil';
 import {useAPI, useAPICall, useResource} from '@xorkevin/substation';
 import {
   getCookie,
@@ -10,9 +10,58 @@ import {
 } from './utility';
 import GovAuthAPI from './src/apiconfig';
 
-// Actions
+const storeUser = (key, user) => {
+  localStorage.setItem(key, JSON.stringify(user));
+};
+
+const retrieveUser = (key) => {
+  const k = localStorage.getItem(key);
+  try {
+    return JSON.parse(k);
+  } catch (_e) {
+    return null;
+  }
+};
 
 const secondsDay = 86400;
+
+const defaultOpts = Object.freeze({
+  cookieUserid: 'userid',
+  storageUserKey: (userid) => `turbine:user:${userid}`,
+});
+
+const makeAuthClient = (opts = {}) => {
+  const o = Object.assign({}, defaultOpts, opts);
+  const state = {
+    valid: true,
+    loggedIn: false,
+    userid: '',
+    authTags: '',
+    timeEnd: 0,
+    timeRefresh: 0,
+  };
+  const userid = getCookie(o.cookieUserid);
+  if (userid) {
+    state.loggedIn = true;
+    state.userid = userid;
+    const user = retrieveUser(o.storageUserKey(userid));
+    if (user) {
+      state.authTags = user.authTags;
+    }
+  }
+
+  const authState = atom({
+    key: 'turbine:auth_state',
+    default: state,
+  });
+
+  return {
+    authState,
+  };
+};
+
+// Actions
+
 const getRefreshTime = () => Math.floor(Date.now() / 1000) + secondsDay; // time is in seconds
 
 const LOGIN_SUCCESS = Symbol('LOGIN_SUCCESS');
@@ -29,39 +78,7 @@ const Logout = () => ({type: LOGOUT});
 
 // Reducer
 
-const storeUser = (userid, user) => {
-  localStorage.setItem(`user:${userid}`, JSON.stringify(user));
-};
-
-const retrieveUser = (userid) => {
-  const k = localStorage.getItem(`user:${userid}`);
-  try {
-    return JSON.parse(k);
-  } catch (_e) {
-    return null;
-  }
-};
-
-const defaultState = Object.freeze({
-  valid: false,
-  loggedIn: false,
-  userid: '',
-  authTags: '',
-  timeEnd: 0,
-  timeRefresh: 0,
-});
-
 const initState = () => {
-  const k = {valid: true};
-  const userid = getCookie('userid');
-  if (userid) {
-    k.loggedIn = true;
-    k.userid = userid;
-    const user = retrieveUser(userid);
-    if (user) {
-      k.authTags = user.authTags;
-    }
-  }
   return Object.assign({}, defaultState, k);
 };
 
