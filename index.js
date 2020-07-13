@@ -28,10 +28,20 @@ const secondsDay = 86400;
 const defaultOpts = Object.freeze({
   cookieUserid: 'userid',
   storageUserKey: (userid) => `turbine:user:${userid}`,
+  selectAPILogin: (api) => api.u.auth.login,
+  selectAPIExchange: (api) => api.u.auth.exchange,
+  selectAPIRefresh: (api) => api.u.auth.refresh,
+  apiURL: '/api',
+  authURL: '/api/u/auth',
+  fallback: 'Unauthorized',
+  redirParamName: 'redir',
+  homePath: '/',
+  loginPath: '/x/login',
+  authLoading: Promise.resolve(),
 });
 
 const makeAuthClient = (opts = {}) => {
-  const o = Object.assign({}, defaultOpts, opts);
+  const ctx = Object.assign({}, defaultOpts, opts);
   const state = {
     valid: true,
     loggedIn: false,
@@ -40,11 +50,11 @@ const makeAuthClient = (opts = {}) => {
     timeEnd: 0,
     timeRefresh: 0,
   };
-  const userid = getCookie(o.cookieUserid);
+  const userid = getCookie(ctx.cookieUserid);
   if (userid) {
     state.loggedIn = true;
     state.userid = userid;
-    const user = retrieveUser(o.storageUserKey(userid));
+    const user = retrieveUser(ctx.storageUserKey(userid));
     if (user) {
       state.authTags = user.authTags;
     }
