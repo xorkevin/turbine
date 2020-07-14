@@ -1,6 +1,6 @@
 import React, {useEffect, useCallback, useMemo, useContext} from 'react';
 import {useLocation, useHistory} from 'react-router-dom';
-import {atom, useRecoilState} from 'recoil';
+import {atom, useRecoilState, useRecoilValue, useSetRecoilState} from 'recoil';
 import {useAPI, useAPICall, useResource} from '@xorkevin/substation';
 import {
   getCookie,
@@ -9,6 +9,8 @@ import {
   searchParamsToString,
 } from './utility';
 import GovAuthAPI from './src/apiconfig';
+
+const unixTime = () => Date.now() / 1000;
 
 const storeUser = (key, user) => {
   localStorage.setItem(key, JSON.stringify(user));
@@ -23,33 +25,46 @@ const retrieveUser = (key) => {
   }
 };
 
+const logoutCookies = (ctx) => {
+  setCookie(ctx.cookieAccessToken, 'invalid', ctx.routeAPI, 0);
+  setCookie(ctx.cookieRefreshToken, 'invalid', ctx.routeAuth, 0);
+  setCookie(ctx.cookieUserid, 'invalid', ctx.routeRoot, 0);
+};
+
 const secondsDay = 86400;
 
 const defaultOpts = Object.freeze({
+  // server config
   cookieUserid: 'userid',
+  cookieAccessToken: 'access_token',
+  cookieRefreshToken: 'refresh_token',
+  routeRoot: '/',
+  routeAPI: '/api',
+  routeAuth: '/api/u/auth',
+  // client config
   storageUserKey: (userid) => `turbine:user:${userid}`,
   selectAPILogin: (api) => api.u.auth.login,
   selectAPIExchange: (api) => api.u.auth.exchange,
   selectAPIRefresh: (api) => api.u.auth.refresh,
-  apiURL: '/api',
-  authURL: '/api/u/auth',
+  durationRefresh: secondsDay,
   fallback: 'Unauthorized',
   redirParamName: 'redir',
   homePath: '/',
   loginPath: '/x/login',
-  authLoading: Promise.resolve(),
+});
+
+const defaultAuth = Object.freeze({
+  valid: true,
+  loggedIn: false,
+  userid: '',
+  authTags: '',
+  timeAccess: 0,
+  timeRefresh: 0,
 });
 
 const makeAuthClient = (opts = {}) => {
   const ctx = Object.assign({}, defaultOpts, opts);
-  const state = {
-    valid: true,
-    loggedIn: false,
-    userid: '',
-    authTags: '',
-    timeEnd: 0,
-    timeRefresh: 0,
-  };
+  const state = Object.assign({}, defaultAuth);
   const userid = getCookie(ctx.cookieUserid);
   if (userid) {
     state.loggedIn = true;
@@ -60,149 +75,109 @@ const makeAuthClient = (opts = {}) => {
     }
   }
 
+  let authReqChain = Promise.resolve();
+
+  const authCtx = React.createContext(ctx);
   const authState = atom({
     key: 'turbine:auth_state',
     default: state,
   });
 
-  return {
-    authState,
+  // Hooks
+
+  const useAuthValue = () => {
+    return useRecoilValue(authState);
   };
-};
 
-// Actions
+  const useLogout = () => {
+    const ctx = useContext(authCtx);
+    const setAuth = useSetRecoilState(authState);
+    const logout = useCallback(() => {
+      logoutCookies(ctx);
+      setAuth(defaultAuth);
+    }, [ctx, setAuth]);
+    return logout;
+  };
 
-const getRefreshTime = () => Math.floor(Date.now() / 1000) + secondsDay; // time is in seconds
-
-const LOGIN_SUCCESS = Symbol('LOGIN_SUCCESS');
-const LoginSuccess = (userid, authTags, timeEnd, refresh = false) => ({
-  type: LOGIN_SUCCESS,
-  userid,
-  authTags,
-  timeEnd, // timeEnd is in seconds
-  refresh: refresh ? getRefreshTime() : false,
-});
-
-const LOGOUT = Symbol('LOGOUT');
-const Logout = () => ({type: LOGOUT});
-
-// Reducer
-
-const initState = () => {
-  return Object.assign({}, defaultState, k);
-};
-
-const Auth = (state = initState(), action) => {
-  switch (action.type) {
-    case LOGIN_SUCCESS:
-      return Object.assign({}, state, {
-        loggedIn: true,
-        userid: action.userid,
-        authTags: action.authTags,
-        timeEnd: action.timeEnd,
-        timeRefresh: action.refresh ? action.refresh : state.timeRefresh,
-      });
-    case LOGOUT:
-      return Object.assign({}, defaultState, {valid: true});
-    default:
-      return state;
-  }
-};
-
-// Hooks
-
-const DefaultTurbineValue = {
-  selectReducerAuth: (store) => store.Auth,
-  selectAPILogin: (api) => api.u.auth.login,
-  selectAPIExchange: (api) => api.u.auth.exchange,
-  selectAPIRefresh: (api) => api.u.auth.refresh,
-  apiURL: '/api',
-  authURL: '/api/u/auth',
-  fallback: 'Unauthorized',
-  paramName: 'redir',
-  homePath: '/',
-  loginPath: '/x/login',
-  authLoading: Promise.resolve(),
-};
-const AuthContext = React.createContext(DefaultTurbineValue);
-
-const useAuthState = () => {
-  const ctx = useContext(AuthContext);
-  return useSelector(ctx.selectReducerAuth);
-};
-
-const logoutCookies = (apiURL, authURL) => {
-  setCookie('access_token', 'invalid', apiURL, 0);
-  setCookie('refresh_token', 'invalid', authURL, 0);
-  setCookie('userid', 'invalid', '/', 0);
-};
-
-const useLogout = () => {
-  const ctx = useContext(AuthContext);
-  const dispatch = useDispatch();
-  const logout = useCallback(() => {
-    logoutCookies(ctx.apiURL, ctx.authURL);
-    dispatch(Logout());
-  }, [dispatch, ctx.apiURL, ctx.authURL]);
-  return logout;
-};
-
-const useLoginCall = (username, password) => {
-  const ctx = useContext(AuthContext);
-  const dispatch = useDispatch();
-  const [apiState, execute] = useAPICall(
-    ctx.selectAPILogin,
-    [username, password],
-    {
-      userid: '',
-      authTags: '',
-      time: 0,
-    },
-  );
-
-  const loginCall = useCallback(async () => {
-    const [data, _status, err] = await execute();
-    if (err) {
-      return;
-    }
-    const {userid, authTags, time} = data;
-    storeUser(userid, {authTags});
-    dispatch(LoginSuccess(userid, authTags, time, true));
-  }, [dispatch, execute]);
-
-  const login = useCallback(() => {
-    ctx.authLoading = ctx.authLoading.then(loginCall);
-    return ctx.authLoading;
-  }, [ctx, loginCall]);
-
-  return [apiState, login];
-};
-
-const useRelogin = () => {
-  const ctx = useContext(AuthContext);
-  const dispatch = useDispatch();
-  const store = useStore();
-  const execEx = useAPI(ctx.selectAPIExchange);
-  const execRe = useAPI(ctx.selectAPIRefresh);
-  const execLogout = useLogout();
-
-  const reloginCall = useCallback(async () => {
-    const {loggedIn, timeEnd, timeRefresh} = ctx.selectReducerAuth(
-      store.getState(),
+  const useLogin = (username, password) => {
+    const ctx = useContext(authCtx);
+    const setAuth = useSetRecoilState(authState);
+    const [apiState, execute] = useAPICall(
+      ctx.selectAPILogin,
+      [username, password],
+      {
+        userid: '',
+        authTags: '',
+        time: 0,
+      },
     );
-    if (!loggedIn) {
-      return [null, -1, 'Not logged in'];
-    }
-    if (Date.now() / 1000 + 5 < timeEnd) {
-      return [null, 0, null];
-    }
-    const isLoggedIn = getCookie('userid');
-    if (!isLoggedIn) {
-      execLogout();
-      return [null, -1, 'Session expired'];
-    }
-    if (Date.now() / 1000 > timeRefresh) {
-      const [data, status, err] = await execRe();
+
+    const loginCall = useCallback(async () => {
+      const [data, _status, err] = await execute();
+      if (err) {
+        return;
+      }
+      const {userid, authTags, time} = data;
+      storeUser(ctx.storageUserKey(userid), {authTags});
+      setAuth((state) => ({
+        valid: true,
+        loggedIn: true,
+        userid,
+        authTags,
+        timeAccess: time,
+        timeRefresh: state.timeRefresh,
+      }));
+    }, [ctx, setAuth, execute]);
+
+    const login = useCallback(() => {
+      authReqChain = authReqChain.then(loginCall);
+      return authReqChain;
+    }, [loginCall]);
+
+    return [apiState, login];
+  };
+
+  const useRelogin = () => {
+    const ctx = useContext(authCtx);
+    const [auth, setAuth] = useRecoilState(authState);
+    const execEx = useAPI(ctx.selectAPIExchange);
+    const execRe = useAPI(ctx.selectAPIRefresh);
+    const execLogout = useLogout();
+
+    const reloginCall = useCallback(async () => {
+      if (!auth.loggedIn) {
+        return [null, -1, 'Not logged in'];
+      }
+      const now = unixTime();
+      if (now + 5 < auth.timeAccess) {
+        return [null, 0, null];
+      }
+      const isLoggedIn = getCookie(ctx.cookieUserid);
+      if (!isLoggedIn) {
+        execLogout();
+        return [null, -1, 'Session expired'];
+      }
+      if (now + 5 > auth.timeRefresh) {
+        const [data, status, err] = await execRe();
+        if (err) {
+          if (status > 0) {
+            execLogout();
+          }
+          return [data, status, err];
+        }
+        const {userid, authTags, time} = data;
+        storeUser(userid, {authTags});
+        setAuth({
+          valid: true,
+          loggedIn: true,
+          userid,
+          authTags,
+          timeAccess: time,
+          timeRefresh: now + ctx.durationRefresh,
+        });
+        return [data, status, err];
+      }
+      const [data, status, err] = await execEx();
       if (err) {
         if (status > 0) {
           execLogout();
@@ -211,174 +186,169 @@ const useRelogin = () => {
       }
       const {userid, authTags, time} = data;
       storeUser(userid, {authTags});
-      dispatch(LoginSuccess(userid, authTags, time, true));
+      setAuth((state) => ({
+        valid: true,
+        loggedIn: true,
+        userid,
+        authTags,
+        timeAccess: time,
+        timeRefresh: state.timeRefresh,
+      }));
       return [data, status, err];
-    }
-    const [data, status, err] = await execEx();
-    if (err) {
-      if (status > 0) {
-        execLogout();
-      }
-      return [data, status, err];
-    }
-    const {userid, authTags, time} = data;
-    storeUser(userid, {authTags});
-    dispatch(LoginSuccess(userid, authTags, time));
-    return [data, status, err];
-  }, [ctx, dispatch, store, execEx, execRe, execLogout]);
+    }, [ctx, auth, setAuth, execEx, execRe, execLogout]);
 
-  const relogin = useCallback(() => {
-    ctx.authLoading = ctx.authLoading.then(reloginCall);
-    return ctx.authLoading;
-  }, [ctx, reloginCall]);
+    const relogin = useCallback(() => {
+      authReqChain = authReqChain.then(reloginCall);
+      return authReqChain;
+    }, [reloginCall]);
 
-  return relogin;
-};
-
-const useAuth = (callback) => {
-  const relogin = useRelogin();
-
-  const exec = useCallback(
-    async (opts) => {
-      const [_data, _status, err] = await relogin();
-      if (err) {
-        return err;
-      }
-      return callback(opts);
-    },
-    [relogin, callback],
-  );
-
-  return exec;
-};
-
-const useAuthCall = (selector, args, initState, opts) => {
-  const [apiState, execute] = useAPICall(selector, args, initState, opts);
-  return [apiState, useAuth(execute)];
-};
-
-const useAuthResource = (selector, args, initState, opts = {}) => {
-  const relogin = useRelogin();
-
-  const {prehook} = opts;
-
-  const reloginhook = useCallback(
-    async (args, opts) => {
-      const [_data, _status, err] = await relogin();
-      if (opts.cancelRef && opts.cancelRef.current) {
-        return;
-      }
-      if (err) {
-        return err;
-      }
-      if (prehook) {
-        return prehook(args, opts);
-      }
-    },
-    [relogin, prehook],
-  );
-
-  const reloginOpts = Object.assign({}, opts, {
-    prehook: reloginhook,
-  });
-
-  return useResource(selector, args, initState, reloginOpts);
-};
-
-// Higher Order
-
-const Protected = (child, allowedAuth) => {
-  const Inner = (props) => {
-    const {pathname, search} = useLocation();
-    const history = useHistory();
-    const {valid, loggedIn, authTags} = useAuthState();
-    const ctx = useContext(AuthContext);
-
-    useEffect(() => {
-      if (valid && !loggedIn) {
-        const searchParams = getSearchParams(search);
-        searchParams.delete(ctx.paramName);
-        if (pathname !== ctx.homePath) {
-          searchParams.set(ctx.paramName, pathname);
-        }
-        history.replace({
-          pathname: ctx.loginPath,
-          search: searchParamsToString(searchParams),
-        });
-      }
-    }, [
-      ctx.paramName,
-      ctx.homePath,
-      ctx.loginPath,
-      valid,
-      loggedIn,
-      pathname,
-      search,
-      history,
-    ]);
-
-    const authorized = useMemo(() => {
-      if (!allowedAuth) {
-        return true;
-      }
-      const authTagSet = new Set(authTags.split(','));
-      if (!Array.isArray(allowedAuth)) {
-        return authTagSet.has(allowedAuth);
-      }
-      const intersection = new Set(
-        allowedAuth.filter((x) => authTagSet.has(x)),
-      );
-      return intersection.size > 0;
-    }, [authTags]);
-
-    if (!authorized) {
-      return ctx.fallback;
-    }
-    return React.createElement(child, props);
+    return relogin;
   };
-  return Inner;
-};
 
-const AntiProtected = (child) => {
-  const Inner = (props) => {
-    const {search} = useLocation();
-    const history = useHistory();
-    const {loggedIn} = useAuthState();
-    const ctx = useContext(AuthContext);
+  const useWrapAuth = (callback) => {
+    const relogin = useRelogin();
 
-    useEffect(() => {
-      if (loggedIn) {
-        const searchParams = getSearchParams(search);
-        let redir = searchParams.get(ctx.paramName);
-        searchParams.delete(ctx.paramName);
-        if (!redir) {
-          redir = ctx.homePath;
+    const exec = useCallback(
+      async (...args) => {
+        const [_data, _status, err] = await relogin();
+        if (err) {
+          return err;
         }
-        history.replace({
-          pathname: redir,
-          search: searchParamsToString(searchParams),
-        });
-      }
-    }, [ctx, loggedIn, search, history]);
+        return callback(...args);
+      },
+      [relogin, callback],
+    );
 
-    return React.createElement(child, props);
+    return exec;
   };
-  return Inner;
+
+  const useAuthCall = (selector, args, initState, opts) => {
+    const [apiState, execute] = useAPICall(selector, args, initState, opts);
+    return [apiState, useWrapAuth(execute)];
+  };
+
+  const useAuthResource = (selector, args, initState, opts = {}) => {
+    const relogin = useRelogin();
+
+    const {prehook} = opts;
+
+    const reloginhook = useCallback(
+      async (args, opts) => {
+        const [_data, _status, err] = await relogin();
+        if (opts.cancelRef && opts.cancelRef.current) {
+          return;
+        }
+        if (err) {
+          return err;
+        }
+        if (prehook) {
+          return prehook(args, opts);
+        }
+      },
+      [relogin, prehook],
+    );
+
+    const reloginOpts = Object.assign({}, opts, {
+      prehook: reloginhook,
+    });
+
+    return useResource(selector, args, initState, reloginOpts);
+  };
+
+  // Higher Order
+
+  const Protected = (child, allowedAuth) => {
+    const Inner = (props) => {
+      const {pathname, search} = useLocation();
+      const history = useHistory();
+      const {valid, loggedIn, authTags} = useAuthState();
+      const ctx = useContext(AuthContext);
+
+      useEffect(() => {
+        if (valid && !loggedIn) {
+          const searchParams = getSearchParams(search);
+          searchParams.delete(ctx.paramName);
+          if (pathname !== ctx.homePath) {
+            searchParams.set(ctx.paramName, pathname);
+          }
+          history.replace({
+            pathname: ctx.loginPath,
+            search: searchParamsToString(searchParams),
+          });
+        }
+      }, [
+        ctx.paramName,
+        ctx.homePath,
+        ctx.loginPath,
+        valid,
+        loggedIn,
+        pathname,
+        search,
+        history,
+      ]);
+
+      const authorized = useMemo(() => {
+        if (!allowedAuth) {
+          return true;
+        }
+        const authTagSet = new Set(authTags.split(','));
+        if (!Array.isArray(allowedAuth)) {
+          return authTagSet.has(allowedAuth);
+        }
+        const intersection = new Set(
+          allowedAuth.filter((x) => authTagSet.has(x)),
+        );
+        return intersection.size > 0;
+      }, [authTags]);
+
+      if (!authorized) {
+        return ctx.fallback;
+      }
+      return React.createElement(child, props);
+    };
+    return Inner;
+  };
+
+  const AntiProtected = (child) => {
+    const Inner = (props) => {
+      const {search} = useLocation();
+      const history = useHistory();
+      const {loggedIn} = useAuthState();
+      const ctx = useContext(AuthContext);
+
+      useEffect(() => {
+        if (loggedIn) {
+          const searchParams = getSearchParams(search);
+          let redir = searchParams.get(ctx.paramName);
+          searchParams.delete(ctx.paramName);
+          if (!redir) {
+            redir = ctx.homePath;
+          }
+          history.replace({
+            pathname: redir,
+            search: searchParamsToString(searchParams),
+          });
+        }
+      }, [ctx, loggedIn, search, history]);
+
+      return React.createElement(child, props);
+    };
+    return Inner;
+  };
+
+  return {
+    authCtx,
+    authState,
+    useAuthValue,
+    useLogout,
+    useLogin,
+    useRelogin,
+    useWrapAuth,
+    useAuthCall,
+    useAuthResource,
+    Protected,
+    AntiProtected,
+  };
 };
 
-export {
-  Auth as default,
-  Auth,
-  GovAuthAPI,
-  AuthContext,
-  DefaultTurbineValue,
-  useAuthState,
-  useLoginCall,
-  useRelogin,
-  useAuth,
-  useAuthCall,
-  useAuthResource,
-  useLogout,
-  Protected,
-  AntiProtected,
-};
+export {GovAuthAPI, makeAuthClient};
