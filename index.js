@@ -47,10 +47,10 @@ const defaultOpts = Object.freeze({
   selectAPIExchange: (api) => api.u.auth.exchange,
   selectAPIRefresh: (api) => api.u.auth.refresh,
   durationRefresh: secondsDay,
-  fallback: 'Unauthorized',
-  redirParamName: 'redir',
-  homePath: '/',
-  loginPath: '/x/login',
+  fallbackView: 'Unauthorized',
+  authRedirParam: 'redir',
+  pathHome: '/',
+  pathLogin: '/x/login',
 });
 
 const defaultAuth = Object.freeze({
@@ -261,31 +261,22 @@ const makeAuthClient = (opts = {}) => {
     const Inner = (props) => {
       const {pathname, search} = useLocation();
       const history = useHistory();
-      const {valid, loggedIn, authTags} = useAuthState();
-      const ctx = useContext(AuthContext);
+      const ctx = useContext(authCtx);
+      const {valid, loggedIn, authTags} = useAuthValue();
 
       useEffect(() => {
         if (valid && !loggedIn) {
           const searchParams = getSearchParams(search);
-          searchParams.delete(ctx.paramName);
-          if (pathname !== ctx.homePath) {
-            searchParams.set(ctx.paramName, pathname);
+          searchParams.delete(ctx.authRedirParam);
+          if (pathname !== ctx.pathHome) {
+            searchParams.set(ctx.authRedirParam, pathname);
           }
           history.replace({
-            pathname: ctx.loginPath,
+            pathname: ctx.pathLogin,
             search: searchParamsToString(searchParams),
           });
         }
-      }, [
-        ctx.paramName,
-        ctx.homePath,
-        ctx.loginPath,
-        valid,
-        loggedIn,
-        pathname,
-        search,
-        history,
-      ]);
+      }, [ctx, valid, loggedIn, pathname, search, history]);
 
       const authorized = useMemo(() => {
         if (!allowedAuth) {
@@ -302,7 +293,7 @@ const makeAuthClient = (opts = {}) => {
       }, [authTags]);
 
       if (!authorized) {
-        return ctx.fallback;
+        return ctx.fallbackView;
       }
       return React.createElement(child, props);
     };
@@ -313,23 +304,23 @@ const makeAuthClient = (opts = {}) => {
     const Inner = (props) => {
       const {search} = useLocation();
       const history = useHistory();
-      const {loggedIn} = useAuthState();
-      const ctx = useContext(AuthContext);
+      const ctx = useContext(authCtx);
+      const {valid, loggedIn} = useAuthValue();
 
       useEffect(() => {
-        if (loggedIn) {
+        if (valid && loggedIn) {
           const searchParams = getSearchParams(search);
-          let redir = searchParams.get(ctx.paramName);
-          searchParams.delete(ctx.paramName);
+          let redir = searchParams.get(ctx.authRedirParam);
+          searchParams.delete(ctx.authRedirParam);
           if (!redir) {
-            redir = ctx.homePath;
+            redir = ctx.pathHome;
           }
           history.replace({
             pathname: redir,
             search: searchParamsToString(searchParams),
           });
         }
-      }, [ctx, loggedIn, search, history]);
+      }, [ctx, valid, loggedIn, search, history]);
 
       return React.createElement(child, props);
     };
