@@ -65,7 +65,7 @@ const defaultAuth = Object.freeze({
   timeRefresh: 0,
 });
 
-const makeInitState = ({cookieUserid, storageUserKey}) => ({set}) => {
+const makeInitAuthState = ({cookieUserid, storageUserKey}) => ({set}) => {
   const state = Object.assign({}, defaultAuth);
 
   const userid = getCookie(cookieUserid);
@@ -335,7 +335,7 @@ export {
   GovAuthAPI,
   TurbineDefaultOpts,
   AuthCtx,
-  makeInitState,
+  makeInitAuthState,
   AuthState,
   useAuthValue,
   useLogout,
