@@ -65,6 +65,11 @@ const defaultAuth = Object.freeze({
   timeRefresh: 0,
 });
 
+const AuthState = atom({
+  key: 'turbine:auth_state',
+  default: defaultAuth,
+});
+
 const makeInitAuthState = ({cookieUserid, storageUserKey}) => ({set}) => {
   const state = Object.assign({}, defaultAuth);
 
@@ -81,11 +86,6 @@ const makeInitAuthState = ({cookieUserid, storageUserKey}) => ({set}) => {
 
   return set(AuthState, state);
 };
-
-const AuthState = atom({
-  key: 'turbine:auth_state',
-  default: defaultAuth,
-});
 
 // Hooks
 
@@ -335,8 +335,8 @@ export {
   GovAuthAPI,
   TurbineDefaultOpts,
   AuthCtx,
-  makeInitAuthState,
   AuthState,
+  makeInitAuthState,
   useAuthValue,
   useLogout,
   useLogin,
