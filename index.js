@@ -168,7 +168,7 @@ const useRelogin = () => {
     if (now + 5 > auth.timeRefresh) {
       const [data, status, err] = await execRe();
       if (err) {
-        if (status > 0) {
+        if (status > 0 && status < 500) {
           execLogout();
         }
         return [data, status, err];
@@ -188,7 +188,7 @@ const useRelogin = () => {
     }
     const [data, status, err] = await execEx();
     if (err) {
-      if (status > 0) {
+      if (status > 0 && status < 500) {
         execLogout();
       }
       return [data, status, err];
