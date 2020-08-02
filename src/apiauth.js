@@ -7,9 +7,11 @@ export default {
     selector: (_status, data) => {
       const {userid, exp: time} = data.claims;
       const authTags = data.auth_tags;
+      const sessionid = data.session_token;
       return {
         userid,
         authTags,
+        sessionid,
         time,
       };
     },
@@ -22,9 +24,11 @@ export default {
     selector: (_status, data) => {
       const {userid, exp: time} = data.claims;
       const authTags = data.auth_tags;
+      const sessionid = data.session_token;
       return {
         userid,
         authTags,
+        sessionid,
         time,
       };
     },
@@ -37,9 +41,11 @@ export default {
     selector: (_status, data) => {
       const {userid, exp: time} = data.claims;
       const authTags = data.auth_tags;
+      const sessionid = data.session_token;
       return {
         userid,
         authTags,
+        sessionid,
         time,
       };
     },

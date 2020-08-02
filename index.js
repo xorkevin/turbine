@@ -61,6 +61,7 @@ const defaultAuth = Object.freeze({
   loggedIn: false,
   userid: '',
   authTags: '',
+  sessionid: '',
   timeAccess: 0,
   timeRefresh: 0,
 });
@@ -81,6 +82,7 @@ const makeInitAuthState = ({cookieUserid, storageUserKey}) => ({set}) => {
     const user = retrieveUser(storageUserKey(userid));
     if (user) {
       state.authTags = user.authTags;
+      state.sessionid = user.sessionid;
     }
   }
 
@@ -112,6 +114,7 @@ const useLogin = (username, password) => {
     {
       userid: '',
       authTags: '',
+      sessionid: '',
       time: 0,
     },
   );
@@ -121,13 +124,14 @@ const useLogin = (username, password) => {
     if (err) {
       return;
     }
-    const {userid, authTags, time} = data;
-    storeUser(ctx.storageUserKey(userid), {authTags});
+    const {userid, authTags, sessionid, time} = data;
+    storeUser(ctx.storageUserKey(userid), {authTags, sessionid});
     setAuth((state) => ({
       valid: true,
       loggedIn: true,
       userid,
       authTags,
+      sessionid,
       timeAccess: time,
       timeRefresh: state.timeRefresh,
     }));
@@ -169,13 +173,14 @@ const useRelogin = () => {
         }
         return [data, status, err];
       }
-      const {userid, authTags, time} = data;
-      storeUser(userid, {authTags});
+      const {userid, authTags, sessionid, time} = data;
+      storeUser(userid, {authTags, sessionid});
       setAuth({
         valid: true,
         loggedIn: true,
         userid,
         authTags,
+        sessionid,
         timeAccess: time,
         timeRefresh: now + ctx.durationRefresh,
       });
@@ -188,13 +193,14 @@ const useRelogin = () => {
       }
       return [data, status, err];
     }
-    const {userid, authTags, time} = data;
-    storeUser(userid, {authTags});
+    const {userid, authTags, sessionid, time} = data;
+    storeUser(userid, {authTags, sessionid});
     setAuth((state) => ({
       valid: true,
       loggedIn: true,
       userid,
       authTags,
+      sessionid,
       timeAccess: time,
       timeRefresh: state.timeRefresh,
     }));
