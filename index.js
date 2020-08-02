@@ -193,17 +193,29 @@ const useRelogin = () => {
       }
       return [data, status, err];
     }
-    const {userid, authTags, sessionid, time} = data;
+    const {userid, authTags, sessionid, refresh, time} = data;
     storeUser(userid, {authTags, sessionid});
-    setAuth((state) => ({
-      valid: true,
-      loggedIn: true,
-      userid,
-      authTags,
-      sessionid,
-      timeAccess: time,
-      timeRefresh: state.timeRefresh,
-    }));
+    if (refresh) {
+      setAuth({
+        valid: true,
+        loggedIn: true,
+        userid,
+        authTags,
+        sessionid,
+        timeAccess: time,
+        timeRefresh: now + ctx.durationRefresh,
+      });
+    } else {
+      setAuth((state) => ({
+        valid: true,
+        loggedIn: true,
+        userid,
+        authTags,
+        sessionid,
+        timeAccess: time,
+        timeRefresh: state.timeRefresh,
+      }));
+    }
     return [data, status, err];
   }, [ctx, auth, setAuth, execEx, execRe, execLogout]);
 

@@ -8,10 +8,12 @@ export default {
       const {userid, exp: time} = data.claims;
       const authTags = data.auth_tags;
       const sessionid = data.session_token;
+      const refresh = data.refresh;
       return {
         userid,
         authTags,
         sessionid,
+        refresh,
         time,
       };
     },
@@ -25,10 +27,12 @@ export default {
       const {userid, exp: time} = data.claims;
       const authTags = data.auth_tags;
       const sessionid = data.session_token;
+      const refresh = data.refresh;
       return {
         userid,
         authTags,
         sessionid,
+        refresh,
         time,
       };
     },
@@ -42,10 +46,12 @@ export default {
       const {userid, exp: time} = data.claims;
       const authTags = data.auth_tags;
       const sessionid = data.session_token;
+      const refresh = data.refresh;
       return {
         userid,
         authTags,
         sessionid,
+        refresh,
         time,
       };
     },
