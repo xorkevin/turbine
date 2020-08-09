@@ -458,6 +458,7 @@ const useAuthResource = (selector, args, initState, opts = {}) => {
 const useRefreshAuth = () => {
   const [once, setOnce] = useState(false);
   const {valid, loggedIn} = useAuthValue();
+  const relogin = useRelogin();
   const [_user, refreshUser] = useRefreshUser();
   const [_roles, refreshRoles] = useRefreshRoles();
   useEffect(() => {
@@ -465,11 +466,17 @@ const useRefreshAuth = () => {
       return;
     }
     if (valid && loggedIn) {
-      refreshUser();
-      refreshRoles();
+      (async () => {
+        const [_data, _status, err] = await relogin();
+        if (err) {
+          return;
+        }
+        refreshUser();
+        refreshRoles();
+      })();
     }
     setOnce(true);
-  }, [once, setOnce, valid, loggedIn, refreshUser, refreshRoles]);
+  }, [once, setOnce, valid, loggedIn, relogin, refreshUser, refreshRoles]);
 };
 
 // Higher Order
