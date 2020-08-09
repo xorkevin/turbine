@@ -1,4 +1,10 @@
-import React, {useEffect, useCallback, useMemo, useContext} from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useContext,
+} from 'react';
 import {useLocation, useHistory} from 'react-router-dom';
 import {atom, useRecoilState, useRecoilValue, useSetRecoilState} from 'recoil';
 import {useAPI, useAPICall, useResource} from '@xorkevin/substation';
@@ -449,6 +455,23 @@ const useAuthResource = (selector, args, initState, opts = {}) => {
   return useResource(selector, args, initState, reloginOpts);
 };
 
+const useRefreshAuth = () => {
+  const [once, setOnce] = useState(false);
+  const {valid, loggedIn} = useAuthValue();
+  const [_user, refreshUser] = useRefreshUser();
+  const [_roles, refreshRoles] = useRefreshRoles();
+  useEffect(() => {
+    if (once) {
+      return;
+    }
+    if (valid && loggedIn) {
+      refreshUser();
+      refreshRoles();
+    }
+    setOnce(true);
+  }, [once, setOnce, valid, loggedIn, refreshUser, refreshRoles]);
+};
+
 // Higher Order
 
 const Protected = (child, allowedAuth) => {
@@ -537,6 +560,7 @@ export {
   useWrapAuth,
   useAuthCall,
   useAuthResource,
+  useRefreshAuth,
   Protected,
   AntiProtected,
 };
