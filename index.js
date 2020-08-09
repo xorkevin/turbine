@@ -191,7 +191,7 @@ const useRefreshRoles = () => {
   const setAuth = useSetRecoilState(AuthState);
   const [apiState, execute] = useGetRoles();
 
-  const refreshUserRoles = useCallback(async () => {
+  const refreshRoles = useCallback(async () => {
     const [data, _status, err] = await execute();
     if (err) {
       return;
@@ -211,7 +211,7 @@ const useRefreshRoles = () => {
       });
     });
   }, [ctx, setAuth, execute]);
-  return [apiState, refreshUserRoles];
+  return [apiState, refreshRoles];
 };
 
 const useLogin = (username, password) => {
