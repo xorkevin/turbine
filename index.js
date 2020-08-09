@@ -178,7 +178,11 @@ const useRefreshUser = () => {
 
 const useGetRoles = () => {
   const ctx = useContext(AuthCtx);
-  const [apiState, execute] = useAPICall(ctx.selectAPIUserRoles, [], []);
+  const [apiState, execute] = useAPICall(
+    ctx.selectAPIUserRoles,
+    [ctx.roleIntersect],
+    [],
+  );
   return [apiState, execute];
 };
 

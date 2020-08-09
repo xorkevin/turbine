@@ -4,6 +4,24 @@ export default {
     method: 'GET',
     expectdata: true,
     err: 'Unable to get user info',
+    children: {
+      roles: {
+        url: '/role?amount={0}&offset={1}',
+        method: 'GET',
+        transformer: (amount, offset) => [[amount, offset], null],
+        expectdata: true,
+        selector: (_status, data) => data && data.roles,
+        err: 'Could not get user roles',
+      },
+      roleint: {
+        url: '/roleint?roles={0}',
+        method: 'GET',
+        transformer: (roles) => [[roles], null],
+        expectdata: true,
+        selector: (_status, data) => data && data.roles,
+        err: 'Could not get user roles',
+      },
+    },
   },
   sessions: {
     url: '/sessions',
@@ -106,6 +124,25 @@ export default {
         expectdata: true,
         err: 'Unable to get user info',
       },
+      roles: {
+        url: '/roles?amount={1}&offset={2}',
+        method: 'GET',
+        transformer: (userid, amount, offset) => [
+          [userid, amount, offset],
+          null,
+        ],
+        expectdata: true,
+        selector: (_status, data) => data && data.roles,
+        err: 'Unable to get user roles',
+      },
+      roleint: {
+        url: '/roleint?roles={1}',
+        method: 'GET',
+        transformer: (userid, roles) => [[userid, roles], null],
+        expectdata: true,
+        selector: (_status, data) => data && data.roles,
+        err: 'Could not get user roles',
+      },
       edit: {
         url: '',
         children: {
@@ -156,8 +193,24 @@ export default {
     method: 'GET',
     transformer: (userids) => [[userids], null],
     expectdata: true,
-    selector: (_status, data) => data.users,
+    selector: (_status, data) => data && data.users,
     err: 'Unable to get user info',
+  },
+  all: {
+    url: '/all?amount={0}&offset={1}',
+    method: 'GET',
+    transformer: (amount, offset) => [[amount, offset], null],
+    expectdata: true,
+    selector: (_status, data) => data && data.users,
+    err: 'Unable to get user info',
+  },
+  role: {
+    url: '/role/{0}?amount={1}&offset={2}',
+    method: 'GET',
+    transformer: (role, amount, offset) => [[role, amount, offset], null],
+    expectdata: true,
+    selector: (_status, data) => data && data.users,
+    err: 'Unable to get users',
   },
   create: {
     url: '',
@@ -182,7 +235,7 @@ export default {
         method: 'GET',
         transformer: (amount, offset) => [[amount, offset], null],
         expectdata: true,
-        selector: (_status, data) => data.approvals,
+        selector: (_status, data) => data && data.approvals,
         err: 'Unable to get approvals',
       },
       id: {
