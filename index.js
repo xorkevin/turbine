@@ -33,6 +33,8 @@ const logoutCookies = (ctx) => {
 
 const secondsDay = 86400;
 
+const DefaultRoleIntersect = ['user', 'admin', 'usr_user', 'usr_courier'];
+
 const TurbineDefaultOpts = Object.freeze({
   // server config
   cookieUserid: 'userid',
@@ -46,6 +48,9 @@ const TurbineDefaultOpts = Object.freeze({
   selectAPILogin: (api) => api.u.auth.login,
   selectAPIExchange: (api) => api.u.auth.exchange,
   selectAPIRefresh: (api) => api.u.auth.refresh,
+  selectAPIUser: (api) => api.u.user.get,
+  selectAPIUserRoles: (api) => api.u.user.get.roleint,
+  roleIntersect: DefaultRoleIntersect,
   durationRefresh: secondsDay,
   fallbackView: 'Unauthorized',
   authRedirParam: 'redir',
@@ -60,7 +65,12 @@ const defaultAuth = Object.freeze({
   valid: true,
   loggedIn: false,
   userid: '',
-  authTags: '',
+  username: '',
+  first_name: '',
+  last_name: '',
+  email: '',
+  creation_time: 0,
+  authTags: [],
   sessionid: '',
   timeAccess: 0,
   timeRefresh: 0,
@@ -81,8 +91,24 @@ const makeInitAuthState = ({cookieUserid, storageUserKey}) => ({set}) => {
 
     const user = retrieveUser(storageUserKey(userid));
     if (user) {
-      state.authTags = user.authTags;
-      state.sessionid = user.sessionid;
+      const {
+        username,
+        first_name,
+        last_name,
+        email,
+        creation_time,
+        authTags,
+        sessionid,
+      } = user;
+      Object.assign(state, {
+        username,
+        first_name,
+        last_name,
+        email,
+        creation_time,
+        authTags,
+        sessionid,
+      });
     }
   }
 
@@ -105,6 +131,85 @@ const useLogout = () => {
   return logout;
 };
 
+const useGetUser = () => {
+  const ctx = useContext(AuthCtx);
+  const [apiState, execute] = useAPICall(ctx.selectAPIUser, [], {
+    username: '',
+    first_name: '',
+    last_name: '',
+    email: '',
+    creation_time: 0,
+  });
+  return [apiState, execute];
+};
+
+const useRefreshUser = () => {
+  const ctx = useContext(AuthCtx);
+  const setAuth = useSetRecoilState(AuthState);
+  const [apiState, execute] = useGetUser();
+
+  const refreshUser = useCallback(async () => {
+    const [data, _status, err] = await execute();
+    if (err) {
+      return;
+    }
+    const {username, first_name, last_name, email, creation_time} = data;
+    setAuth((state) => {
+      storeUser(ctx.storageUserKey(state.userid), {
+        username,
+        first_name,
+        last_name,
+        email,
+        creation_time,
+        authTags: state.authTags,
+        sessionid: state.sessionid,
+      });
+      return Object.assign({}, state, {
+        username,
+        first_name,
+        last_name,
+        email,
+        creation_time,
+      });
+    });
+  }, [ctx, setAuth, execute]);
+  return [apiState, refreshUser];
+};
+
+const useGetRoles = () => {
+  const ctx = useContext(AuthCtx);
+  const [apiState, execute] = useAPICall(ctx.selectAPIUserRoles, [], []);
+  return [apiState, execute];
+};
+
+const useRefreshRoles = () => {
+  const ctx = useContext(AuthCtx);
+  const setAuth = useSetRecoilState(AuthState);
+  const [apiState, execute] = useGetRoles();
+
+  const refreshUserRoles = useCallback(async () => {
+    const [data, _status, err] = await execute();
+    if (err) {
+      return;
+    }
+    setAuth((state) => {
+      storeUser(ctx.storageUserKey(state.userid), {
+        username: state.username,
+        first_name: state.first_name,
+        last_name: state.last_name,
+        email: state.email,
+        creation_time: state.creation_time,
+        authTags: data,
+        sessionid: state.sessionid,
+      });
+      return Object.assign({}, state, {
+        authTags: data,
+      });
+    });
+  }, [ctx, setAuth, execute]);
+  return [apiState, refreshUserRoles];
+};
+
 const useLogin = (username, password) => {
   const ctx = useContext(AuthCtx);
   const setAuth = useSetRecoilState(AuthState);
@@ -113,29 +218,65 @@ const useLogin = (username, password) => {
     [username, password],
     {
       userid: '',
-      authTags: '',
       sessionid: '',
       time: 0,
     },
   );
+  const [_apiState_user, execGetUser] = useGetUser();
+  const [_apiState_roles, execGetRoles] = useGetRoles();
 
   const loginCall = useCallback(async () => {
     const [data, _status, err] = await execute();
     if (err) {
       return;
     }
-    const {userid, authTags, sessionid, time} = data;
-    storeUser(ctx.storageUserKey(userid), {authTags, sessionid});
-    setAuth((state) => ({
+    const [resUser, resRoles] = await Promise.all([
+      execGetUser(),
+      execGetRoles(),
+    ]);
+    const {userid, sessionid, time} = data;
+    const {
+      username,
+      first_name,
+      last_name,
+      email,
+      creation_time,
+    } = Object.assign(
+      {
+        username: '',
+        first_name: '',
+        last_name: '',
+        email: '',
+        creation_time: '',
+      },
+      resUser[0],
+    );
+    const authTags = resRoles[0] || [];
+    const now = unixTime();
+    storeUser(ctx.storageUserKey(userid), {
+      username,
+      first_name,
+      last_name,
+      email,
+      creation_time,
+      authTags,
+      sessionid,
+    });
+    setAuth({
       valid: true,
       loggedIn: true,
       userid,
+      username,
+      first_name,
+      last_name,
+      email,
+      creation_time,
       authTags,
       sessionid,
       timeAccess: time,
-      timeRefresh: state.timeRefresh,
-    }));
-  }, [ctx, setAuth, execute]);
+      timeRefresh: now + ctx.durationRefresh,
+    });
+  }, [ctx, setAuth, execute, execGetUser, execGetRoles]);
 
   const login = useCallback(() => {
     ctx.authReqChain = ctx.authReqChain.then(loginCall);
@@ -173,16 +314,25 @@ const useRelogin = () => {
         }
         return [data, status, err];
       }
-      const {userid, authTags, sessionid, time} = data;
-      storeUser(userid, {authTags, sessionid});
-      setAuth({
-        valid: true,
-        loggedIn: true,
-        userid,
-        authTags,
-        sessionid,
-        timeAccess: time,
-        timeRefresh: now + ctx.durationRefresh,
+      const {userid, sessionid, time} = data;
+      setAuth((state) => {
+        storeUser(ctx.storageUserKey(userid), {
+          username: state.username,
+          first_name: state.first_name,
+          last_name: state.last_name,
+          email: state.email,
+          creation_time: state.creation_time,
+          authTags: state.authTags,
+          sessionid,
+        });
+        return Object.assign({}, state, {
+          valid: true,
+          loggedIn: true,
+          userid,
+          sessionid,
+          timeAccess: time,
+          timeRefresh: now + ctx.durationRefresh,
+        });
       });
       return [data, status, err];
     }
@@ -193,28 +343,46 @@ const useRelogin = () => {
       }
       return [data, status, err];
     }
-    const {userid, authTags, sessionid, refresh, time} = data;
-    storeUser(userid, {authTags, sessionid});
+    const {userid, sessionid, refresh, time} = data;
     if (refresh) {
-      setAuth({
-        valid: true,
-        loggedIn: true,
-        userid,
-        authTags,
-        sessionid,
-        timeAccess: time,
-        timeRefresh: now + ctx.durationRefresh,
+      setAuth((state) => {
+        storeUser(ctx.storageUserKey(userid), {
+          username: state.username,
+          first_name: state.first_name,
+          last_name: state.last_name,
+          email: state.email,
+          creation_time: state.creation_time,
+          authTags: state.authTags,
+          sessionid,
+        });
+        return Object.assign({}, state, {
+          valid: true,
+          loggedIn: true,
+          userid,
+          sessionid,
+          timeAccess: time,
+          timeRefresh: now + ctx.durationRefresh,
+        });
       });
     } else {
-      setAuth((state) => ({
-        valid: true,
-        loggedIn: true,
-        userid,
-        authTags,
-        sessionid,
-        timeAccess: time,
-        timeRefresh: state.timeRefresh,
-      }));
+      setAuth((state) => {
+        storeUser(ctx.storageUserKey(userid), {
+          username: state.username,
+          first_name: state.first_name,
+          last_name: state.last_name,
+          email: state.email,
+          creation_time: state.creation_time,
+          authTags: state.authTags,
+          sessionid,
+        });
+        return Object.assign({}, state, {
+          valid: true,
+          loggedIn: true,
+          userid,
+          sessionid,
+          timeAccess: time,
+        });
+      });
     }
     return [data, status, err];
   }, [ctx, auth, setAuth, execEx, execRe, execLogout]);
@@ -304,7 +472,7 @@ const Protected = (child, allowedAuth) => {
       if (!allowedAuth) {
         return true;
       }
-      const authTagSet = new Set(authTags.split(','));
+      const authTagSet = new Set(authTags);
       if (!Array.isArray(allowedAuth)) {
         return authTagSet.has(allowedAuth);
       }
@@ -352,12 +520,15 @@ const AntiProtected = (child) => {
 export {
   GovAuthAPI,
   TurbineDefaultOpts,
+  DefaultRoleIntersect,
   AuthCtx,
   AuthState,
   makeInitAuthState,
   useAuthValue,
   useLogout,
   useLogin,
+  useRefreshUser,
+  useRefreshRoles,
   useRelogin,
   useWrapAuth,
   useAuthCall,
