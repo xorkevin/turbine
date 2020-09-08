@@ -83,7 +83,7 @@ const defaultAuth = Object.freeze({
   last_name: '',
   email: '',
   creation_time: 0,
-  authTags: [],
+  roles: [],
   sessionid: '',
   timeAccess: 0,
   timeRefresh: 0,
@@ -110,7 +110,7 @@ const makeInitAuthState = ({cookieUserid, storageUserKey}) => ({set}) => {
         last_name,
         email,
         creation_time,
-        authTags,
+        roles,
         sessionid,
       } = user;
       Object.assign(state, {
@@ -119,7 +119,7 @@ const makeInitAuthState = ({cookieUserid, storageUserKey}) => ({set}) => {
         last_name,
         email,
         creation_time,
-        authTags,
+        roles,
         sessionid,
       });
     }
@@ -174,7 +174,7 @@ const useRefreshUser = () => {
         last_name,
         email,
         creation_time,
-        authTags: state.authTags,
+        roles: state.roles,
         sessionid: state.sessionid,
       });
       return Object.assign({}, state, {
@@ -216,11 +216,11 @@ const useRefreshRoles = () => {
         last_name: state.last_name,
         email: state.email,
         creation_time: state.creation_time,
-        authTags: data,
+        roles: data,
         sessionid: state.sessionid,
       });
       return Object.assign({}, state, {
-        authTags: data,
+        roles: data,
       });
     });
   }, [ctx, setAuth, execute]);
@@ -268,7 +268,7 @@ const useLogin = (username, password) => {
       },
       resUser[0],
     );
-    const authTags = resRoles[0] || [];
+    const roles = resRoles[0] || [];
     const now = unixTime();
     storeUser(ctx.storageUserKey(userid), {
       username,
@@ -276,7 +276,7 @@ const useLogin = (username, password) => {
       last_name,
       email,
       creation_time,
-      authTags,
+      roles,
       sessionid,
     });
     setAuth({
@@ -288,7 +288,7 @@ const useLogin = (username, password) => {
       last_name,
       email,
       creation_time,
-      authTags,
+      roles,
       sessionid,
       timeAccess: time,
       timeRefresh: now + ctx.durationRefresh,
@@ -339,7 +339,7 @@ const useRelogin = () => {
           last_name: state.last_name,
           email: state.email,
           creation_time: state.creation_time,
-          authTags: state.authTags,
+          roles: state.roles,
           sessionid,
         });
         return Object.assign({}, state, {
@@ -369,7 +369,7 @@ const useRelogin = () => {
           last_name: state.last_name,
           email: state.email,
           creation_time: state.creation_time,
-          authTags: state.authTags,
+          roles: state.roles,
           sessionid,
         });
         return Object.assign({}, state, {
@@ -389,7 +389,7 @@ const useRelogin = () => {
           last_name: state.last_name,
           email: state.email,
           creation_time: state.creation_time,
-          authTags: state.authTags,
+          roles: state.roles,
           sessionid,
         });
         return Object.assign({}, state, {
@@ -493,7 +493,7 @@ const Protected = (child, allowedAuth) => {
     const {pathname, search} = useLocation();
     const history = useHistory();
     const ctx = useContext(AuthCtx);
-    const {valid, loggedIn, authTags} = useAuthValue();
+    const {valid, loggedIn, roles} = useAuthValue();
 
     useEffect(() => {
       if (valid && !loggedIn) {
@@ -513,15 +513,13 @@ const Protected = (child, allowedAuth) => {
       if (!allowedAuth) {
         return true;
       }
-      const authTagSet = new Set(authTags);
+      const roleSet = new Set(roles);
       if (!Array.isArray(allowedAuth)) {
-        return authTagSet.has(allowedAuth);
+        return roleSet.has(allowedAuth);
       }
-      const intersection = new Set(
-        allowedAuth.filter((x) => authTagSet.has(x)),
-      );
+      const intersection = new Set(allowedAuth.filter((x) => roleSet.has(x)));
       return intersection.size > 0;
-    }, [authTags]);
+    }, [roles]);
 
     if (!authorized) {
       return ctx.fallbackView;
