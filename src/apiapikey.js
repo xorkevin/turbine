@@ -8,10 +8,10 @@ export default {
     err: 'Could not get apikeys',
   },
   check: {
-    url: '/check?authtags={0}',
+    url: '/check?roles={0}&scope={1}',
     method: 'GET',
-    transformer: (keyid, key, auth_tags) => [
-      [auth_tags],
+    transformer: (keyid, key, roles, scope) => [
+      [roles, scope],
       null,
       {Authorization: `Basic ${btoa(keyid + ':' + key)}`},
     ],
@@ -21,7 +21,7 @@ export default {
   create: {
     url: '',
     method: 'POST',
-    transformer: (name, desc, auth_tags) => [null, {name, desc, auth_tags}],
+    transformer: (name, desc, scope) => [null, {name, desc, scope}],
     expectdata: true,
     err: 'Could not create apikey',
   },
@@ -31,9 +31,9 @@ export default {
       edit: {
         url: '',
         method: 'PUT',
-        transformer: (keyid, name, desc, auth_tags) => [
+        transformer: (keyid, name, desc, scope) => [
           [keyid],
-          {name, desc, auth_tags},
+          {name, desc, scope},
         ],
         expectdata: false,
         err: 'Could not edit apikey',

@@ -5,7 +5,7 @@ export default {
     transformer: (username, password) => [null, {username, password}],
     expectdata: true,
     selector: (_status, data) => {
-      const {userid, exp: time} = data.claims;
+      const {sub: userid, exp: time} = data.claims;
       const sessionid = data.session_token;
       const refresh = data.refresh;
       return {
@@ -22,7 +22,7 @@ export default {
     method: 'POST',
     expectdata: true,
     selector: (_status, data) => {
-      const {userid, exp: time} = data.claims;
+      const {sub: userid, exp: time} = data.claims;
       const sessionid = data.session_token;
       const refresh = data.refresh;
       return {
@@ -39,7 +39,7 @@ export default {
     method: 'POST',
     expectdata: true,
     selector: (_status, data) => {
-      const {userid, exp: time} = data.claims;
+      const {sub: userid, exp: time} = data.claims;
       const sessionid = data.session_token;
       const refresh = data.refresh;
       return {
