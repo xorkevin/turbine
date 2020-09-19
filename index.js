@@ -39,14 +39,16 @@ const logoutCookies = (ctx) => {
 
 const secondsDay = 86400;
 
-const DefaultRoleIntersect = [
+const DefaultRoleIntersect = Object.freeze([
   'user',
   'admin',
   'usr_user',
   'mod_user',
+  'usr_oauth',
+  'mod_oauth',
   'usr_courier',
   'mod_courier',
-];
+]);
 
 const TurbineDefaultOpts = Object.freeze({
   // server config
