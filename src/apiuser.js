@@ -206,7 +206,7 @@ export default {
       confirm: {
         url: '/confirm',
         method: 'POST',
-        transformer: (email, key) => [null, {email, key}],
+        transformer: (userid, key) => [null, {userid, key}],
         expectdata: true,
         err: 'Could not create account',
       },
