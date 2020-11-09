@@ -42,12 +42,10 @@ const secondsDay = 86400;
 const DefaultRoleIntersect = Object.freeze([
   'user',
   'admin',
-  'usr_user',
-  'mod_user',
-  'usr_oauth',
-  'mod_oauth',
-  'usr_courier',
-  'mod_courier',
+  'usr.gov.user',
+  'mod.gov.user',
+  'usr.gov.oauth',
+  'mod.gov.oauth',
 ]);
 
 const TurbineDefaultOpts = Object.freeze({
