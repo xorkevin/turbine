@@ -1,6 +1,6 @@
 {
   "name": "@xorkevin/turbine",
-  "version": "0.1.12-11",
+  "version": "0.1.12-12",
   "description": "a recoil based authentication engine for governor",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"

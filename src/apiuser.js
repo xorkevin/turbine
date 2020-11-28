@@ -16,7 +16,7 @@ export default {
       roleint: {
         url: '/roleint?roles={0}',
         method: 'GET',
-        transformer: (roles) => [[roles], null],
+        transformer: (roles) => [[roles.join(',')], null],
         expectdata: true,
         selector: (_status, data) => data && data.roles,
         err: 'Could not get user roles',
@@ -138,7 +138,7 @@ export default {
       roleint: {
         url: '/roleint?roles={1}',
         method: 'GET',
-        transformer: (userid, roles) => [[userid, roles], null],
+        transformer: (userid, roles) => [[userid, roles.join(',')], null],
         expectdata: true,
         selector: (_status, data) => data && data.roles,
         err: 'Could not get user roles',
@@ -176,7 +176,7 @@ export default {
   ids: {
     url: '/ids?ids={0}',
     method: 'GET',
-    transformer: (userids) => [[userids], null],
+    transformer: (userids) => [[userids.join(',')], null],
     expectdata: true,
     selector: (_status, data) => data && data.users,
     err: 'Unable to get user info',
