@@ -6,7 +6,7 @@ export default {
     err: 'Unable to get user info',
     children: {
       roles: {
-        url: '/role?amount={0}&offset={1}',
+        url: '/roles?amount={0}&offset={1}',
         method: 'GET',
         transformer: (amount, offset) => [[amount, offset], null],
         expectdata: true,
