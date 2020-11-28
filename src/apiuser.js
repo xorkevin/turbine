@@ -37,10 +37,7 @@ export default {
       del: {
         url: '',
         method: 'DELETE',
-        transformer: (ids) => [
-          null,
-          {session_ids: ids.length > 0 ? ids.split(',') : []},
-        ],
+        transformer: (session_ids) => [null, {session_ids}],
         expectdata: false,
         err: 'Could not delete sessions',
       },
