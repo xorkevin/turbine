@@ -6,9 +6,12 @@ export default {
     err: 'Unable to get user info',
     children: {
       roles: {
-        url: '/roles?amount={0}&offset={1}',
+        url: '/roles?prefix={0}&amount={1}&offset={2}',
         method: 'GET',
-        transformer: (amount, offset) => [[amount, offset], null],
+        transformer: (prefix, amount, offset) => [
+          [prefix, amount, offset],
+          null,
+        ],
         expectdata: true,
         selector: (_status, data) => data && data.roles,
         err: 'Could not get user roles',
@@ -122,10 +125,10 @@ export default {
         err: 'Unable to get user info',
       },
       roles: {
-        url: '/roles?amount={1}&offset={2}',
+        url: '/roles?prefix={1}&amount={2}&offset={3}',
         method: 'GET',
-        transformer: (userid, amount, offset) => [
-          [userid, amount, offset],
+        transformer: (userid, prefix, amount, offset) => [
+          [userid, prefix, amount, offset],
           null,
         ],
         expectdata: true,
