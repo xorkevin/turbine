@@ -1,4 +1,6 @@
-import React, {
+import {
+  createElement,
+  createContext,
   useState,
   useEffect,
   useCallback,
@@ -72,7 +74,7 @@ const TurbineDefaultOpts = Object.freeze({
   authReqChain: Promise.resolve(),
 });
 
-const AuthCtx = React.createContext(Object.assign({}, TurbineDefaultOpts));
+const AuthCtx = createContext(Object.assign({}, TurbineDefaultOpts));
 
 const defaultAuth = Object.freeze({
   valid: true,
@@ -126,6 +128,16 @@ const makeInitAuthState = ({cookieUserid, storageUserKey}) => ({set}) => {
   }
 
   return set(AuthState, state);
+};
+
+const AuthMiddleware = (value) => {
+  const v = Object.assign({}, TurbineDefaultOpts, value);
+  return {
+    ctxProvider: ({children}) => (
+      <AuthCtx.Provider value={v}>{children}</AuthCtx.Provider>
+    ),
+    initState: makeInitAuthState(v),
+  };
 };
 
 // Hooks
@@ -524,7 +536,7 @@ const Protected = (child, allowedAuth) => {
     if (!authorized) {
       return ctx.fallbackView;
     }
-    return React.createElement(child, props);
+    return createElement(child, props);
   };
   return Inner;
 };
@@ -551,7 +563,7 @@ const AntiProtected = (child) => {
       }
     }, [ctx, valid, loggedIn, search, history]);
 
-    return React.createElement(child, props);
+    return createElement(child, props);
   };
   return Inner;
 };
@@ -562,7 +574,7 @@ export {
   DefaultRoleIntersect,
   AuthCtx,
   AuthState,
-  makeInitAuthState,
+  AuthMiddleware,
   useAuthValue,
   useLogout,
   useLogin,
