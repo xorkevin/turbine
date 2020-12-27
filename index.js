@@ -498,6 +498,11 @@ const useRefreshAuth = () => {
   }, [once, setOnce, valid, loggedIn, relogin, refreshUser, refreshRoles]);
 };
 
+const useIntersectRoles = (roleIntersect) => {
+  const ctx = useContext(AuthCtx);
+  return useAuthResource(ctx.selectAPIUserRoles, [roleIntersect], []);
+};
+
 // Higher Order
 
 const Protected = (child, allowedAuth) => {
@@ -585,6 +590,7 @@ export {
   useAuthCall,
   useAuthResource,
   useRefreshAuth,
+  useIntersectRoles,
   Protected,
   AntiProtected,
 };
