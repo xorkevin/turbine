@@ -1,2 +1,3 @@
 # turbine
-a redux based authentication engine for governor
+
+a client authentication engine for governor
