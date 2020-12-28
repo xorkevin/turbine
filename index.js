@@ -9,7 +9,12 @@ import {
 } from 'react';
 import {useLocation, useHistory} from 'react-router-dom';
 import {atom, useRecoilState, useRecoilValue, useSetRecoilState} from 'recoil';
-import {useAPI, useAPICall, useResource} from '@xorkevin/substation';
+import {
+  useAPI,
+  useAPICall,
+  useResource,
+  selectAPINull,
+} from '@xorkevin/substation';
 import {
   getCookie,
   setCookie,
@@ -500,7 +505,13 @@ const useRefreshAuth = () => {
 
 const useIntersectRoles = (roleIntersect) => {
   const ctx = useContext(AuthCtx);
-  return useAuthResource(ctx.selectAPIUserRoles, [roleIntersect], []);
+  return useAuthResource(
+    !Array.isArray(roleIntersect) || roleIntersect.length === 0
+      ? selectAPINull
+      : ctx.selectAPIUserRoles,
+    [roleIntersect],
+    [],
+  );
 };
 
 // Higher Order
