@@ -1,54 +1,87 @@
-import authAPI from './apiauth';
-import userAPI from './apiuser';
-import apikeyAPI from './apiapikey';
-
-const user = (url = '/u') => ({
+const turbine = (url = '/u') => ({
   url,
   children: {
     user: {
       url: '/user',
-      children: userAPI,
+      children: {
+        get: {
+          url: '',
+          method: 'GET',
+          expectdata: true,
+          err: 'Unable to get user info',
+        },
+        roleint: {
+          url: '/roleint?roles={0}',
+          method: 'GET',
+          transformer: (roles) => [[roles.join(',')], null],
+          expectdata: true,
+          selector: (_status, data) => data && data.roles,
+          err: 'Could not get user roles',
+        },
+      },
     },
     auth: {
       url: '/auth',
-      children: authAPI,
-    },
-    apikey: {
-      url: '/apikey',
-      children: apikeyAPI,
-    },
-  },
-});
-
-const setupz = () => ({
-  url: '/setupz',
-  method: 'POST',
-  expectdata: true,
-  err: 'Could not run server setup',
-});
-
-const healthz = () => ({
-  url: '/healthz',
-  children: {
-    live: {
-      url: '/live',
-      method: 'GET',
-      expectdata: false,
-      err: 'Could not get health report from api server',
-    },
-    ready: {
-      url: '/ready',
-      method: 'GET',
-      expectdata: true,
-      err: 'Could not get health report from api server',
+      children: {
+        login: {
+          url: '/login',
+          method: 'POST',
+          transformer: (username, password) => [null, {username, password}],
+          expectdata: true,
+          selector: (_status, data) => {
+            const {sub: userid, exp: time} = data.claims;
+            const sessionid = data.session_token;
+            const refresh = data.refresh;
+            return {
+              userid,
+              sessionid,
+              refresh,
+              time,
+            };
+          },
+          err: 'Incorrect username or password',
+        },
+        exchange: {
+          url: '/exchange',
+          method: 'POST',
+          expectdata: true,
+          selector: (_status, data) => {
+            const {sub: userid, exp: time} = data.claims;
+            const sessionid = data.session_token;
+            const refresh = data.refresh;
+            return {
+              userid,
+              sessionid,
+              refresh,
+              time,
+            };
+          },
+          err: 'Login session expired',
+        },
+        refresh: {
+          url: '/refresh',
+          method: 'POST',
+          expectdata: true,
+          selector: (_status, data) => {
+            const {sub: userid, exp: time} = data.claims;
+            const sessionid = data.session_token;
+            const refresh = data.refresh;
+            return {
+              userid,
+              sessionid,
+              refresh,
+              time,
+            };
+          },
+          err: 'Login session expired',
+        },
+      },
     },
   },
 });
 
 const GovAuthAPI = Object.freeze({
-  setupz,
-  healthz,
-  user,
+  turbine,
 });
 
-export {GovAuthAPI as default, GovAuthAPI};
+export default GovAuthAPI;
