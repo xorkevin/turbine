@@ -234,7 +234,10 @@ export default {
           get: {
             url: '?amount={1}&offset={2}',
             method: 'GET',
-            transformer: (amount, offset) => [[amount, offset], null],
+            transformer: (role, amount, offset) => [
+              [role, amount, offset],
+              null,
+            ],
             expectdata: true,
             selector: (_status, data) => data && data.invitations,
             err: 'Could not get role invitations',
