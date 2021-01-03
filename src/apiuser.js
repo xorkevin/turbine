@@ -4,9 +4,12 @@ export default {
     method: 'GET',
     expectdata: true,
     err: 'Unable to get user info',
+  },
+  roles: {
+    url: '/roles',
     children: {
-      roles: {
-        url: '/roles?prefix={0}&amount={1}&offset={2}',
+      get: {
+        url: '?prefix={0}&amount={1}&offset={2}',
         method: 'GET',
         transformer: (prefix, amount, offset) => [
           [prefix, amount, offset],
@@ -16,15 +19,40 @@ export default {
         selector: (_status, data) => data && data.roles,
         err: 'Could not get user roles',
       },
-      roleint: {
-        url: '/roleint?roles={0}',
-        method: 'GET',
-        transformer: (roles) => [[roles.join(',')], null],
-        expectdata: true,
-        selector: (_status, data) => data && data.roles,
-        err: 'Could not get user roles',
+      invitation: {
+        url: '/invitation',
+        children: {
+          get: {
+            url: '?amount={0}&offset={1}',
+            method: 'GET',
+            transformer: (amount, offset) => [[amount, offset], null],
+            expectdata: true,
+            selector: (_status, data) => data && data.invitations,
+            err: 'Could not get user role invitations',
+          },
+          accept: {
+            url: '/{0}/accept',
+            method: 'POST',
+            transformer: (role) => [[role], null],
+            err: 'Could not accept role invitation',
+          },
+          del: {
+            url: '/{0}',
+            method: 'DELETE',
+            transformer: (role) => [[role], null],
+            err: 'Could not delete role invitation',
+          },
+        },
       },
     },
+  },
+  roleint: {
+    url: '/roleint?roles={0}',
+    method: 'GET',
+    transformer: (roles) => [[roles.join(',')], null],
+    expectdata: true,
+    selector: (_status, data) => data && data.roles,
+    err: 'Could not get user roles',
   },
   sessions: {
     url: '/sessions',
@@ -190,12 +218,36 @@ export default {
     err: 'Unable to get user info',
   },
   role: {
-    url: '/role/{0}?amount={1}&offset={2}',
-    method: 'GET',
-    transformer: (role, amount, offset) => [[role, amount, offset], null],
-    expectdata: true,
-    selector: (_status, data) => data && data.users,
-    err: 'Unable to get users',
+    url: '/role/{0}',
+    children: {
+      get: {
+        url: '?amount={1}&offset={2}',
+        method: 'GET',
+        transformer: (role, amount, offset) => [[role, amount, offset], null],
+        expectdata: true,
+        selector: (_status, data) => data && data.users,
+        err: 'Unable to get users for role',
+      },
+      invitation: {
+        url: '/invitation',
+        children: {
+          get: {
+            url: '?amount={1}&offset={2}',
+            method: 'GET',
+            transformer: (amount, offset) => [[amount, offset], null],
+            expectdata: true,
+            selector: (_status, data) => data && data.invitations,
+            err: 'Could not get role invitations',
+          },
+          del: {
+            url: '/id/{1}',
+            method: 'DELETE',
+            transformer: (role, userid) => [[role, userid], null],
+            err: 'Could not delete role invitation',
+          },
+        },
+      },
+    },
   },
   create: {
     url: '',

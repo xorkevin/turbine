@@ -69,7 +69,7 @@ const TurbineDefaultOpts = Object.freeze({
   selectAPIExchange: (api) => api.u.auth.exchange,
   selectAPIRefresh: (api) => api.u.auth.refresh,
   selectAPIUser: (api) => api.u.user.get,
-  selectAPIUserRoles: (api) => api.u.user.get.roleint,
+  selectAPIUserRoles: (api) => api.u.user.roleint,
   roleIntersect: DefaultRoleIntersect,
   durationRefresh: secondsDay,
   fallbackView: 'Unauthorized',
