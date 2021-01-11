@@ -82,7 +82,6 @@ const TurbineDefaultOpts = Object.freeze({
 const AuthCtx = createContext(Object.assign({}, TurbineDefaultOpts));
 
 const defaultAuth = Object.freeze({
-  valid: true,
   loggedIn: false,
   userid: '',
   username: '',
@@ -297,7 +296,6 @@ const useLogin = (username, password) => {
       sessionid,
     });
     setAuth({
-      valid: true,
       loggedIn: true,
       userid,
       username,
@@ -360,7 +358,6 @@ const useRelogin = () => {
           sessionid,
         });
         return Object.assign({}, state, {
-          valid: true,
           loggedIn: true,
           userid,
           sessionid,
@@ -390,7 +387,6 @@ const useRelogin = () => {
           sessionid,
         });
         return Object.assign({}, state, {
-          valid: true,
           loggedIn: true,
           userid,
           sessionid,
@@ -410,7 +406,6 @@ const useRelogin = () => {
           sessionid,
         });
         return Object.assign({}, state, {
-          valid: true,
           loggedIn: true,
           userid,
           sessionid,
@@ -481,7 +476,7 @@ const useAuthResource = (selector, args, initState, opts = {}) => {
 
 const useRefreshAuth = () => {
   const [once, setOnce] = useState(false);
-  const {valid, loggedIn} = useAuthValue();
+  const {loggedIn} = useAuthValue();
   const relogin = useRelogin();
   const [_user, refreshUser] = useRefreshUser();
   const [_roles, refreshRoles] = useRefreshRoles();
@@ -489,7 +484,7 @@ const useRefreshAuth = () => {
     if (once) {
       return;
     }
-    if (valid && loggedIn) {
+    if (loggedIn) {
       (async () => {
         const [_data, _status, err] = await relogin();
         if (err) {
@@ -500,7 +495,7 @@ const useRefreshAuth = () => {
       })();
     }
     setOnce(true);
-  }, [once, setOnce, valid, loggedIn, relogin, refreshUser, refreshRoles]);
+  }, [once, setOnce, loggedIn, relogin, refreshUser, refreshRoles]);
 };
 
 const useIntersectRoles = (roleIntersect) => {
@@ -521,10 +516,10 @@ const Protected = (child, allowedAuth) => {
     const {pathname, search} = useLocation();
     const history = useHistory();
     const ctx = useContext(AuthCtx);
-    const {valid, loggedIn, roles} = useAuthValue();
+    const {loggedIn, roles} = useAuthValue();
 
     useEffect(() => {
-      if (valid && !loggedIn) {
+      if (!loggedIn) {
         const searchParams = getSearchParams(search);
         searchParams.delete(ctx.authRedirParam);
         if (pathname !== ctx.pathHome) {
@@ -535,7 +530,7 @@ const Protected = (child, allowedAuth) => {
           search: searchParamsToString(searchParams),
         });
       }
-    }, [ctx, valid, loggedIn, pathname, search, history]);
+    }, [ctx, loggedIn, pathname, search, history]);
 
     const authorized = useMemo(() => {
       if (!allowedAuth) {
@@ -562,10 +557,10 @@ const AntiProtected = (child) => {
     const {search} = useLocation();
     const history = useHistory();
     const ctx = useContext(AuthCtx);
-    const {valid, loggedIn} = useAuthValue();
+    const {loggedIn} = useAuthValue();
 
     useEffect(() => {
-      if (valid && loggedIn) {
+      if (loggedIn) {
         const searchParams = getSearchParams(search);
         let redir = searchParams.get(ctx.authRedirParam);
         searchParams.delete(ctx.authRedirParam);
@@ -577,7 +572,7 @@ const AntiProtected = (child) => {
           search: searchParamsToString(searchParams),
         });
       }
-    }, [ctx, valid, loggedIn, search, history]);
+    }, [ctx, loggedIn, search, history]);
 
     return createElement(child, props);
   };
