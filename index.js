@@ -91,6 +91,7 @@ const defaultAuth = Object.freeze({
   creation_time: 0,
   roles: [],
   sessionid: '',
+  timeAuth: 0,
   timeAccess: 0,
   timeRefresh: 0,
 });
@@ -252,6 +253,7 @@ const useLogin = (username, password) => {
     {
       userid: '',
       sessionid: '',
+      timeAuth: 0,
       time: 0,
     },
   );
@@ -267,7 +269,7 @@ const useLogin = (username, password) => {
       execGetUser(),
       execGetRoles(),
     ]);
-    const {userid, sessionid, time} = data;
+    const {userid, sessionid, timeAuth, time} = data;
     const {
       username,
       first_name,
@@ -305,6 +307,7 @@ const useLogin = (username, password) => {
       creation_time,
       roles,
       sessionid,
+      timeAuth,
       timeAccess: time,
       timeRefresh: now + ctx.durationRefresh,
     });
@@ -346,7 +349,7 @@ const useRelogin = () => {
         }
         return [data, status, err];
       }
-      const {userid, sessionid, time} = data;
+      const {userid, sessionid, timeAuth, time} = data;
       setAuth((state) => {
         storeUser(ctx.storageUserKey(userid), {
           username: state.username,
@@ -361,6 +364,7 @@ const useRelogin = () => {
           loggedIn: true,
           userid,
           sessionid,
+          timeAuth,
           timeAccess: time,
           timeRefresh: now + ctx.durationRefresh,
         });
@@ -374,7 +378,7 @@ const useRelogin = () => {
       }
       return [data, status, err];
     }
-    const {userid, sessionid, refresh, time} = data;
+    const {userid, sessionid, timeAuth, refresh, time} = data;
     if (refresh) {
       setAuth((state) => {
         storeUser(ctx.storageUserKey(userid), {
@@ -390,6 +394,7 @@ const useRelogin = () => {
           loggedIn: true,
           userid,
           sessionid,
+          timeAuth,
           timeAccess: time,
           timeRefresh: now + ctx.durationRefresh,
         });

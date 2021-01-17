@@ -31,10 +31,12 @@ const turbine = (url = '/u') => ({
           selector: (_status, data) => {
             const {sub: userid, exp: time} = data.claims;
             const sessionid = data.session_token;
+            const timeAuth = data.auth_time;
             const refresh = data.refresh;
             return {
               userid,
               sessionid,
+              timeAuth,
               refresh,
               time,
             };
@@ -48,10 +50,12 @@ const turbine = (url = '/u') => ({
           selector: (_status, data) => {
             const {sub: userid, exp: time} = data.claims;
             const sessionid = data.session_token;
+            const timeAuth = data.auth_time;
             const refresh = data.refresh;
             return {
               userid,
               sessionid,
+              timeAuth,
               refresh,
               time,
             };
@@ -65,10 +69,12 @@ const turbine = (url = '/u') => ({
           selector: (_status, data) => {
             const {sub: userid, exp: time} = data.claims;
             const sessionid = data.session_token;
+            const timeAuth = data.auth_time;
             const refresh = data.refresh;
             return {
               userid,
               sessionid,
+              timeAuth,
               refresh,
               time,
             };
