@@ -414,6 +414,7 @@ const useRelogin = () => {
           loggedIn: true,
           userid,
           sessionid,
+          timeAuth,
           timeAccess: time,
         });
       });
