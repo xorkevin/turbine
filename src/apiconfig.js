@@ -13,7 +13,9 @@ const turbine = (url = '/u') => ({
         roleint: {
           url: '/roleint?roles={0}',
           method: 'GET',
-          transformer: (roles) => [[roles.join(',')], null],
+          transformer: (roles) => ({
+            params: [roles.join(',')],
+          }),
           expectdata: true,
           selector: (_status, data) => data && data.roles,
           err: 'Could not get user roles',
@@ -26,7 +28,9 @@ const turbine = (url = '/u') => ({
         login: {
           url: '/login',
           method: 'POST',
-          transformer: (username, password) => [null, {username, password}],
+          transformer: (username, password) => ({
+            body: {username, password},
+          }),
           expectdata: true,
           selector: (_status, data) => {
             const {sub: userid, exp: time} = data.claims;

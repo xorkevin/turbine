@@ -1,6 +1,6 @@
 {
   "name": "@xorkevin/turbine",
-  "version": "0.1.12-23",
+  "version": "0.1.12-24",
   "description": "a recoil based authentication engine for governor",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
@@ -26,8 +26,8 @@
     "@babel/eslint-parser": "^7.12.1",
     "@babel/preset-env": "^7.12.11",
     "@babel/preset-react": "^7.12.10",
-    "eslint": "^7.17.0",
-    "eslint-config-prettier": "^7.1.0",
+    "eslint": "^7.19.0",
+    "eslint-config-prettier": "^7.2.0",
     "eslint-plugin-babel": "^5.3.1",
     "eslint-plugin-react": "^7.22.0",
     "eslint-plugin-react-hooks": "^4.2.0",
