@@ -11,10 +11,12 @@ const turbine = (url = '/u') => ({
           err: 'Unable to get user info',
         },
         roleint: {
-          url: '/roleint?roles={0}',
+          url: '/roleint',
           method: 'GET',
           transformer: (roles) => ({
-            params: [roles.join(',')],
+            query: {
+              roles: roles.join(','),
+            },
           }),
           expectdata: true,
           selector: (_status, data) => data && data.roles,
