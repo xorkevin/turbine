@@ -38,9 +38,14 @@ const retrieveUser = (key) => {
   }
 };
 
-const logoutCookies = (ctx) => {
+const logoutCookies = (ctx, userid) => {
   setCookie(ctx.cookieAccessToken, 'invalid', ctx.routeAPI, 0);
   setCookie(ctx.cookieRefreshToken, 'invalid', ctx.routeAuth, 0);
+  if (userid) {
+    setCookie(ctx.cookieIDAccessToken(userid), 'invalid', ctx.routeAPI, 0);
+    setCookie(ctx.cookieRefreshToken, 'invalid', ctx.routeIDAuth(userid), 0);
+    setCookie(ctx.cookieIDUserid(userid), 'invalid', ctx.routeRoot, 0);
+  }
   setCookie(ctx.cookieUserid, 'invalid', ctx.routeRoot, 0);
 };
 
@@ -60,14 +65,18 @@ const TurbineDefaultOpts = Object.freeze({
   cookieUserid: 'userid',
   cookieAccessToken: 'access_token',
   cookieRefreshToken: 'refresh_token',
+  cookieIDUserid: (userid) => `userid_${userid}`,
+  cookieIDAccessToken: (userid) => `access_token_${userid}`,
   routeRoot: '/',
   routeAPI: '/api',
   routeAuth: '/api/u/auth',
+  routeIDAuth: (userid) => `/api/u/auth/id/${userid}`,
+  headerCompass: 'governor-userid-compass',
   // client config
   storageUserKey: (userid) => `turbine:user:${userid}`,
   selectAPILogin: (api) => api.turbine.auth.login,
-  selectAPIExchange: (api) => api.turbine.auth.exchange,
-  selectAPIRefresh: (api) => api.turbine.auth.refresh,
+  selectAPIExchange: (api) => api.turbine.auth.id.exchange,
+  selectAPIRefresh: (api) => api.turbine.auth.id.refresh,
   selectAPIUser: (api) => api.turbine.user.get,
   selectAPIUserRoles: (api) => api.turbine.user.roleint,
   roleIntersect: DefaultRoleIntersect,
@@ -77,6 +86,7 @@ const TurbineDefaultOpts = Object.freeze({
   pathHome: '/',
   pathLogin: '/x/login',
   authReqChain: Promise.resolve(),
+  authReqState: {},
 });
 
 const AuthCtx = createContext(Object.assign({}, TurbineDefaultOpts));
@@ -101,13 +111,20 @@ const AuthState = atom({
   default: defaultAuth,
 });
 
-const makeInitAuthState = ({cookieUserid, storageUserKey}) => ({set}) => {
+const makeInitAuthState = ({
+  cookieUserid,
+  cookieIDUserid,
+  storageUserKey,
+  authReqState,
+}) => ({set}) => {
   const state = Object.assign({}, defaultAuth);
 
   const userid = getCookie(cookieUserid);
-  if (userid) {
+  if (userid && userid === getCookie(cookieIDUserid(userid))) {
     state.loggedIn = true;
     state.userid = userid;
+
+    authReqState.userid = userid;
 
     const user = retrieveUser(storageUserKey(userid));
     if (user) {
@@ -136,12 +153,29 @@ const makeInitAuthState = ({cookieUserid, storageUserKey}) => ({set}) => {
 };
 
 const AuthMiddleware = (value) => {
-  const v = Object.assign({}, TurbineDefaultOpts, value);
+  const v = Object.assign(
+    {},
+    TurbineDefaultOpts,
+    {authReqChain: Promise.resolve(), authReqState: {}},
+    value,
+  );
+  const {headerCompass, authReqState} = v;
+  const apiTransformMiddleware = (transform) => (...args) => {
+    const req = transform(...args);
+    if (authReqState.userid) {
+      req.headers = Object.assign(
+        {[headerCompass]: authReqState.userid},
+        req.headers,
+      );
+    }
+    return req;
+  };
   return {
     ctxProvider: ({children}) => (
       <AuthCtx.Provider value={v}>{children}</AuthCtx.Provider>
     ),
     initState: makeInitAuthState(v),
+    apiTransformMiddleware,
   };
 };
 
@@ -153,11 +187,13 @@ const useAuthValue = () => {
 
 const useLogout = () => {
   const ctx = useContext(AuthCtx);
-  const setAuth = useSetRecoilState(AuthState);
+  const [auth, setAuth] = useRecoilState(AuthState);
+  const {loggedIn, userid} = auth;
   const logout = useCallback(() => {
-    logoutCookies(ctx);
+    logoutCookies(ctx, loggedIn && userid);
     setAuth(defaultAuth);
-  }, [ctx, setAuth]);
+    ctx.authReqState.userid = null;
+  }, [ctx, setAuth, loggedIn, userid]);
   return logout;
 };
 
@@ -287,6 +323,7 @@ const useLogin = (username, password) => {
       resUser[0],
     );
     const roles = resRoles[0] || [];
+    ctx.authReqState.userid = userid;
     const now = unixTime();
     storeUser(ctx.storageUserKey(userid), {
       username,
@@ -321,6 +358,8 @@ const useLogin = (username, password) => {
   return [apiState, login];
 };
 
+const defaultErr = (message) => ({message});
+
 const useRelogin = () => {
   const ctx = useContext(AuthCtx);
   const [auth, setAuth] = useRecoilState(AuthState);
@@ -330,19 +369,19 @@ const useRelogin = () => {
 
   const reloginCall = useCallback(async () => {
     if (!auth.loggedIn) {
-      return [null, -1, 'Not logged in'];
+      return [null, -1, defaultErr('Not logged in')];
     }
     const now = unixTime();
     if (now + 5 < auth.timeAccess) {
       return [null, 0, null];
     }
-    const isLoggedIn = getCookie(ctx.cookieUserid);
+    const isLoggedIn = getCookie(ctx.cookieIDUserid(auth.userid));
     if (!isLoggedIn) {
       execLogout();
-      return [null, -1, 'Session expired'];
+      return [null, -1, defaultErr('Session expired')];
     }
     if (now + 5 > auth.timeRefresh) {
-      const [data, status, err] = await execRe();
+      const [data, status, err] = await execRe(auth.userid);
       if (err) {
         if (status > 0 && status < 500) {
           execLogout();
@@ -350,8 +389,11 @@ const useRelogin = () => {
         return [data, status, err];
       }
       const {userid, sessionid, timeAuth, time} = data;
+      if (userid !== auth.userid) {
+        return [null, -1, defaultErr('Switched user')];
+      }
       setAuth((state) => {
-        storeUser(ctx.storageUserKey(userid), {
+        storeUser(ctx.storageUserKey(state.userid), {
           username: state.username,
           first_name: state.first_name,
           last_name: state.last_name,
@@ -361,8 +403,6 @@ const useRelogin = () => {
           sessionid,
         });
         return Object.assign({}, state, {
-          loggedIn: true,
-          userid,
           sessionid,
           timeAuth,
           timeAccess: time,
@@ -371,7 +411,7 @@ const useRelogin = () => {
       });
       return [data, status, err];
     }
-    const [data, status, err] = await execEx();
+    const [data, status, err] = await execEx(auth.userid);
     if (err) {
       if (status > 0 && status < 500) {
         execLogout();
@@ -379,9 +419,12 @@ const useRelogin = () => {
       return [data, status, err];
     }
     const {userid, sessionid, timeAuth, refresh, time} = data;
+    if (userid !== auth.userid) {
+      return [null, -1, defaultErr('Switched user')];
+    }
     if (refresh) {
       setAuth((state) => {
-        storeUser(ctx.storageUserKey(userid), {
+        storeUser(ctx.storageUserKey(state.userid), {
           username: state.username,
           first_name: state.first_name,
           last_name: state.last_name,
@@ -391,8 +434,6 @@ const useRelogin = () => {
           sessionid,
         });
         return Object.assign({}, state, {
-          loggedIn: true,
-          userid,
           sessionid,
           timeAuth,
           timeAccess: time,
@@ -401,7 +442,7 @@ const useRelogin = () => {
       });
     } else {
       setAuth((state) => {
-        storeUser(ctx.storageUserKey(userid), {
+        storeUser(ctx.storageUserKey(state.userid), {
           username: state.username,
           first_name: state.first_name,
           last_name: state.last_name,
@@ -411,8 +452,6 @@ const useRelogin = () => {
           sessionid,
         });
         return Object.assign({}, state, {
-          loggedIn: true,
-          userid,
           sessionid,
           timeAuth,
           timeAccess: time,

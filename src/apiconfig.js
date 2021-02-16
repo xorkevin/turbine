@@ -87,6 +87,55 @@ const turbine = (url = '/u') => ({
           },
           err: 'Login session expired',
         },
+        id: {
+          url: '/id/{0}',
+          children: {
+            exchange: {
+              url: '/exchange',
+              method: 'POST',
+              transformer: (userid) => ({
+                params: [userid],
+              }),
+              expectdata: true,
+              selector: (_status, data) => {
+                const {sub: userid, exp: time} = data.claims;
+                const sessionid = data.session_token;
+                const timeAuth = data.auth_time;
+                const refresh = data.refresh;
+                return {
+                  userid,
+                  sessionid,
+                  timeAuth,
+                  refresh,
+                  time,
+                };
+              },
+              err: 'Login session expired',
+            },
+            refresh: {
+              url: '/refresh',
+              method: 'POST',
+              transformer: (userid) => ({
+                params: [userid],
+              }),
+              expectdata: true,
+              selector: (_status, data) => {
+                const {sub: userid, exp: time} = data.claims;
+                const sessionid = data.session_token;
+                const timeAuth = data.auth_time;
+                const refresh = data.refresh;
+                return {
+                  userid,
+                  sessionid,
+                  timeAuth,
+                  refresh,
+                  time,
+                };
+              },
+              err: 'Login session expired',
+            },
+          },
+        },
       },
     },
   },
