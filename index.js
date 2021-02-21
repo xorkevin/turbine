@@ -301,11 +301,12 @@ const useLogin = (username, password) => {
     if (err) {
       return;
     }
+    const {userid, sessionid, timeAuth, time} = data;
+    ctx.authReqState.userid = userid;
     const [resUser, resRoles] = await Promise.all([
       execGetUser(),
       execGetRoles(),
     ]);
-    const {userid, sessionid, timeAuth, time} = data;
     const {
       username,
       first_name,
@@ -318,12 +319,11 @@ const useLogin = (username, password) => {
         first_name: '',
         last_name: '',
         email: '',
-        creation_time: '',
+        creation_time: 0,
       },
       resUser[0],
     );
     const roles = resRoles[0] || [];
-    ctx.authReqState.userid = userid;
     const now = unixTime();
     storeUser(ctx.storageUserKey(userid), {
       username,
@@ -467,6 +467,92 @@ const useRelogin = () => {
   }, [ctx, reloginCall]);
 
   return relogin;
+};
+
+const useSwitchUser = () => {
+  const ctx = useContext(AuthCtx);
+  const [auth, setAuth] = useRecoilState(AuthState);
+  const [apiState, execute] = useAPICall(ctx.selectAPIRefresh);
+  const [_apiState_user, execGetUser] = useGetUser();
+  const [_apiState_roles, execGetRoles] = useGetRoles();
+
+  const switchCall = useCallback(
+    async (targetUserid) => {
+      if (targetUserid === auth.userid) {
+        return;
+      }
+      const isLoggedIn = getCookie(ctx.cookieIDUserid(targetUserid));
+      if (!isLoggedIn) {
+        return;
+      }
+      const [data, _status, err] = await execute(targetUserid);
+      if (err) {
+        return;
+      }
+      const {userid, sessionid, timeAuth, time} = data;
+      if (userid !== targetUserid) {
+        return;
+      }
+      ctx.authReqState.userid = userid;
+      const [resUser, resRoles] = await Promise.all([
+        execGetUser(),
+        execGetRoles(),
+      ]);
+      const {
+        username,
+        first_name,
+        last_name,
+        email,
+        creation_time,
+      } = Object.assign(
+        {
+          username: '',
+          first_name: '',
+          last_name: '',
+          email: '',
+          creation_time: 0,
+        },
+        resUser[0],
+      );
+      const roles = resRoles[0] || [];
+      const now = unixTime();
+      storeUser(ctx.storageUserKey(userid), {
+        username,
+        first_name,
+        last_name,
+        email,
+        creation_time,
+        roles,
+        sessionid,
+      });
+      setAuth({
+        loggedIn: true,
+        userid,
+        username,
+        first_name,
+        last_name,
+        email,
+        creation_time,
+        roles,
+        sessionid,
+        timeAuth,
+        timeAccess: time,
+        timeRefresh: now + ctx.durationRefresh,
+      });
+      return [data, status, err];
+    },
+    [ctx, auth, setAuth, execute, execGetUser, execGetRoles],
+  );
+
+  const switchUser = useCallback(
+    (targetUserid) => {
+      ctx.authReqChain = ctx.authReqChain.then(() => switchCall(targetUserid));
+      return ctx.authReqChain;
+    },
+    [ctx, switchCall],
+  );
+
+  return [apiState, switchUser];
 };
 
 const useWrapAuth = (callback) => {
@@ -637,6 +723,7 @@ export {
   useRefreshUser,
   useRefreshRoles,
   useRelogin,
+  useSwitchUser,
   useWrapAuth,
   useAuthCall,
   useAuthResource,
