@@ -214,7 +214,7 @@ const useRefreshUser = () => {
   const setAuth = useSetRecoilState(AuthState);
   const [apiState, execute] = useGetUser();
 
-  const refreshUser = useCallback(async () => {
+  const refreshUserCall = useCallback(async () => {
     const [data, _status, err] = await execute();
     if (err) {
       return;
@@ -239,6 +239,12 @@ const useRefreshUser = () => {
       });
     });
   }, [ctx, setAuth, execute]);
+
+  const refreshUser = useCallback(() => {
+    ctx.authReqChain = ctx.authReqChain.then(refreshUserCall);
+    return ctx.authReqChain;
+  }, [ctx, refreshUserCall]);
+
   return [apiState, refreshUser];
 };
 
@@ -257,7 +263,7 @@ const useRefreshRoles = () => {
   const setAuth = useSetRecoilState(AuthState);
   const [apiState, execute] = useGetRoles();
 
-  const refreshRoles = useCallback(async () => {
+  const refreshRolesCall = useCallback(async () => {
     const [data, _status, err] = await execute();
     if (err) {
       return;
@@ -277,6 +283,12 @@ const useRefreshRoles = () => {
       });
     });
   }, [ctx, setAuth, execute]);
+
+  const refreshRoles = useCallback(() => {
+    ctx.authReqChain = ctx.authReqChain.then(refreshRolesCall);
+    return ctx.authReqChain;
+  }, [ctx, refreshRolesCall]);
+
   return [apiState, refreshRoles];
 };
 
@@ -539,7 +551,6 @@ const useSwitchUser = () => {
         timeAccess: time,
         timeRefresh: now + ctx.durationRefresh,
       });
-      return [data, status, err];
     },
     [ctx, auth, setAuth, execute, execGetUser, execGetRoles],
   );
