@@ -17,6 +17,7 @@ import {
 } from '@xorkevin/substation';
 import {
   getCookie,
+  filterCookies,
   setCookie,
   getSearchParams,
   searchParamsToString,
@@ -65,6 +66,7 @@ const TurbineDefaultOpts = Object.freeze({
   cookieUserid: 'userid',
   cookieAccessToken: 'access_token',
   cookieRefreshToken: 'refresh_token',
+  cookieUseridPrefix: `userid_`,
   cookieIDUserid: (userid) => `userid_${userid}`,
   cookieIDAccessToken: (userid) => `access_token_${userid}`,
   routeRoot: '/',
@@ -180,6 +182,18 @@ const AuthMiddleware = (value) => {
 };
 
 // Hooks
+
+const useAccounts = () => {
+  const ctx = useContext(AuthCtx);
+  const accounts = useMemo(
+    () =>
+      Object.entries(
+        filterCookies(([k, v]) => k === ctx.cookieUseridPrefix + v),
+      ).map(([_k, v]) => v),
+    [ctx],
+  );
+  return accounts;
+};
 
 const useAuthValue = () => {
   return useRecoilValue(AuthState);
@@ -729,6 +743,7 @@ export {
   AuthState,
   AuthMiddleware,
   useAuthValue,
+  useAccounts,
   useLogout,
   useLogin,
   useRefreshUser,

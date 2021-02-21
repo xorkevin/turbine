@@ -1,21 +1,32 @@
 const COOKIE = {
   prev: false,
-  map: new Map(),
+  map: {},
 };
 
 const getCookie = (key) => {
   const cookies = document.cookie;
   if (cookies === COOKIE.prev) {
-    return COOKIE.map.get(key);
+    return COOKIE.map[key];
   }
-  const map = new Map(
-    cookies.split(';').map((value) => {
-      return value.trim().split('=');
-    }),
+  const map = Object.fromEntries(
+    cookies.split(';').map((value) => value.trim().split('=', 2)),
   );
   COOKIE.prev = cookies;
   COOKIE.map = map;
-  return map.get(key);
+  return COOKIE.map[key];
+};
+
+const filterCookies = (fn) => {
+  const cookies = document.cookie;
+  if (cookies === COOKIE.prev) {
+    return Object.fromEntries(Object.entries(COOKIE.map).filter(fn));
+  }
+  const map = Object.fromEntries(
+    cookies.split(';').map((value) => value.trim().split('=', 2)),
+  );
+  COOKIE.prev = cookies;
+  COOKIE.map = map;
+  return Object.fromEntries(Object.entries(COOKIE.map).filter(fn));
 };
 
 const setCookie = (key, value, path = '/', age = 31536000) => {
@@ -38,4 +49,10 @@ const searchParamsToString = (search) => {
   return k;
 };
 
-export {getCookie, setCookie, getSearchParams, searchParamsToString};
+export {
+  getCookie,
+  filterCookies,
+  setCookie,
+  getSearchParams,
+  searchParamsToString,
+};
