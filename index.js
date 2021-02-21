@@ -183,6 +183,27 @@ const AuthMiddleware = (value) => {
 
 // Hooks
 
+const useProtectedRedir = () => {
+  const ctx = useContext(AuthCtx);
+  const {search} = useLocation();
+  const history = useHistory();
+
+  const redirect = useCallback(() => {
+    const searchParams = getSearchParams(search);
+    let redir = searchParams.get(ctx.authRedirParam);
+    searchParams.delete(ctx.authRedirParam);
+    if (!redir) {
+      redir = ctx.pathHome;
+    }
+    history.replace({
+      pathname: redir,
+      search: searchParamsToString(searchParams),
+    });
+  }, [ctx, search, history]);
+
+  return redirect;
+};
+
 const useAccounts = () => {
   const ctx = useContext(AuthCtx);
   const accounts = useMemo(
@@ -323,9 +344,9 @@ const useLogin = (username, password) => {
   const [_apiState_roles, execGetRoles] = useGetRoles();
 
   const loginCall = useCallback(async () => {
-    const [data, _status, err] = await execute();
+    const [data, status, err] = await execute();
     if (err) {
-      return;
+      return [data, status, err];
     }
     const {userid, sessionid, timeAuth, time} = data;
     ctx.authReqState.userid = userid;
@@ -374,6 +395,7 @@ const useLogin = (username, password) => {
       timeAccess: time,
       timeRefresh: now + ctx.durationRefresh,
     });
+    return [data, status, err];
   }, [ctx, setAuth, execute, execGetUser, execGetRoles]);
 
   const login = useCallback(() => {
@@ -495,29 +517,30 @@ const useRelogin = () => {
   return relogin;
 };
 
-const useSwitchUser = () => {
+const useSwitchAccount = () => {
   const ctx = useContext(AuthCtx);
   const [auth, setAuth] = useRecoilState(AuthState);
   const [apiState, execute] = useAPICall(ctx.selectAPIRefresh);
   const [_apiState_user, execGetUser] = useGetUser();
   const [_apiState_roles, execGetRoles] = useGetRoles();
 
+  const authUserid = auth.userid;
   const switchCall = useCallback(
     async (targetUserid) => {
-      if (targetUserid === auth.userid) {
-        return;
+      if (targetUserid === authUserid) {
+        return [null, 0, null];
       }
       const isLoggedIn = getCookie(ctx.cookieIDUserid(targetUserid));
       if (!isLoggedIn) {
-        return;
+        return [null, -1, defaultErr('Session expired')];
       }
-      const [data, _status, err] = await execute(targetUserid);
+      const [data, status, err] = await execute(targetUserid);
       if (err) {
-        return;
+        return [data, status, err];
       }
       const {userid, sessionid, timeAuth, time} = data;
       if (userid !== targetUserid) {
-        return;
+        return [null, -1, defaultErr('Switched user')];
       }
       ctx.authReqState.userid = userid;
       const [resUser, resRoles] = await Promise.all([
@@ -565,8 +588,9 @@ const useSwitchUser = () => {
         timeAccess: time,
         timeRefresh: now + ctx.durationRefresh,
       });
+      return [data, status, err];
     },
-    [ctx, auth, setAuth, execute, execGetUser, execGetRoles],
+    [ctx, authUserid, setAuth, execute, execGetUser, execGetRoles],
   );
 
   const switchUser = useCallback(
@@ -710,25 +734,14 @@ const Protected = (child, allowedAuth) => {
 
 const AntiProtected = (child) => {
   const Inner = (props) => {
-    const {search} = useLocation();
-    const history = useHistory();
-    const ctx = useContext(AuthCtx);
+    const redirect = useProtectedRedir();
     const {loggedIn} = useAuthValue();
 
     useEffect(() => {
       if (loggedIn) {
-        const searchParams = getSearchParams(search);
-        let redir = searchParams.get(ctx.authRedirParam);
-        searchParams.delete(ctx.authRedirParam);
-        if (!redir) {
-          redir = ctx.pathHome;
-        }
-        history.replace({
-          pathname: redir,
-          search: searchParamsToString(searchParams),
-        });
+        redirect();
       }
-    }, [ctx, loggedIn, search, history]);
+    }, [redirect, loggedIn]);
 
     return createElement(child, props);
   };
@@ -743,13 +756,14 @@ export {
   AuthState,
   AuthMiddleware,
   useAuthValue,
+  useProtectedRedir,
   useAccounts,
   useLogout,
   useLogin,
   useRefreshUser,
   useRefreshRoles,
   useRelogin,
-  useSwitchUser,
+  useSwitchAccount,
   useWrapAuth,
   useAuthCall,
   useAuthResource,
