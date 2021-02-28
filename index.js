@@ -517,89 +517,96 @@ const useRelogin = () => {
   return relogin;
 };
 
-const useSwitchAccount = () => {
+const useSwitchAccount = (targetUserid) => {
   const ctx = useContext(AuthCtx);
   const [auth, setAuth] = useRecoilState(AuthState);
-  const [apiState, execute] = useAPICall(ctx.selectAPIRefresh);
+  const [apiState, execute] = useAPICall(ctx.selectAPIRefresh, [targetUserid], {
+    userid: '',
+    sessionid: '',
+    timeAuth: 0,
+    time: 0,
+  });
   const [_apiState_user, execGetUser] = useGetUser();
   const [_apiState_roles, execGetRoles] = useGetRoles();
 
   const authUserid = auth.userid;
-  const switchCall = useCallback(
-    async (targetUserid) => {
-      if (targetUserid === authUserid) {
-        return [null, 0, null];
-      }
-      const isLoggedIn = getCookie(ctx.cookieIDUserid(targetUserid));
-      if (!isLoggedIn) {
-        return [null, -1, defaultErr('Session expired')];
-      }
-      const [data, status, err] = await execute(targetUserid);
-      if (err) {
-        return [data, status, err];
-      }
-      const {userid, sessionid, timeAuth, time} = data;
-      if (userid !== targetUserid) {
-        return [null, -1, defaultErr('Switched user')];
-      }
-      ctx.authReqState.userid = userid;
-      const [resUser, resRoles] = await Promise.all([
-        execGetUser(),
-        execGetRoles(),
-      ]);
-      const {
-        username,
-        first_name,
-        last_name,
-        email,
-        creation_time,
-      } = Object.assign(
-        {
-          username: '',
-          first_name: '',
-          last_name: '',
-          email: '',
-          creation_time: 0,
-        },
-        resUser[0],
-      );
-      const roles = resRoles[0] || [];
-      const now = unixTime();
-      storeUser(ctx.storageUserKey(userid), {
-        username,
-        first_name,
-        last_name,
-        email,
-        creation_time,
-        roles,
-        sessionid,
-      });
-      setAuth({
-        loggedIn: true,
-        userid,
-        username,
-        first_name,
-        last_name,
-        email,
-        creation_time,
-        roles,
-        sessionid,
-        timeAuth,
-        timeAccess: time,
-        timeRefresh: now + ctx.durationRefresh,
-      });
+  const switchCall = useCallback(async () => {
+    if (targetUserid === authUserid) {
+      return [null, 0, null];
+    }
+    const isLoggedIn = getCookie(ctx.cookieIDUserid(targetUserid));
+    if (!isLoggedIn) {
+      return [null, -1, defaultErr('Session expired')];
+    }
+    const [data, status, err] = await execute();
+    if (err) {
       return [data, status, err];
-    },
-    [ctx, authUserid, setAuth, execute, execGetUser, execGetRoles],
-  );
+    }
+    const {userid, sessionid, timeAuth, time} = data;
+    if (userid !== targetUserid) {
+      return [null, -1, defaultErr('Switched user')];
+    }
+    ctx.authReqState.userid = userid;
+    const [resUser, resRoles] = await Promise.all([
+      execGetUser(),
+      execGetRoles(),
+    ]);
+    const {
+      username,
+      first_name,
+      last_name,
+      email,
+      creation_time,
+    } = Object.assign(
+      {
+        username: '',
+        first_name: '',
+        last_name: '',
+        email: '',
+        creation_time: 0,
+      },
+      resUser[0],
+    );
+    const roles = resRoles[0] || [];
+    const now = unixTime();
+    storeUser(ctx.storageUserKey(userid), {
+      username,
+      first_name,
+      last_name,
+      email,
+      creation_time,
+      roles,
+      sessionid,
+    });
+    setAuth({
+      loggedIn: true,
+      userid,
+      username,
+      first_name,
+      last_name,
+      email,
+      creation_time,
+      roles,
+      sessionid,
+      timeAuth,
+      timeAccess: time,
+      timeRefresh: now + ctx.durationRefresh,
+    });
+    return [data, status, err];
+  }, [
+    ctx,
+    targetUserid,
+    authUserid,
+    setAuth,
+    execute,
+    execGetUser,
+    execGetRoles,
+  ]);
 
-  const switchUser = useCallback(
-    (targetUserid) => {
-      ctx.authReqChain = ctx.authReqChain.then(() => switchCall(targetUserid));
-      return ctx.authReqChain;
-    },
-    [ctx, switchCall],
-  );
+  const switchUser = useCallback(() => {
+    ctx.authReqChain = ctx.authReqChain.then(switchCall);
+    return ctx.authReqChain;
+  }, [ctx, switchCall]);
 
   return [apiState, switchUser];
 };
