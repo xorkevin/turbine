@@ -73,7 +73,6 @@ const TurbineDefaultOpts = Object.freeze({
   routeAPI: '/api',
   routeAuth: '/api/u/auth',
   routeIDAuth: (userid) => `/api/u/auth/id/${userid}`,
-  headerCompass: 'governor-userid-compass',
   // client config
   storageUserKey: (userid) => `turbine:user:${userid}`,
   selectAPILogin: (api) => api.turbine.auth.login,
@@ -113,46 +112,41 @@ const AuthState = atom({
   default: defaultAuth,
 });
 
-const makeInitAuthState = ({
-  cookieUserid,
-  cookieIDUserid,
-  storageUserKey,
-  authReqState,
-}) => ({set}) => {
-  const state = Object.assign({}, defaultAuth);
+const makeInitAuthState =
+  ({cookieUserid, cookieIDUserid, storageUserKey}) =>
+  ({set}) => {
+    const state = Object.assign({}, defaultAuth);
 
-  const userid = getCookie(cookieUserid);
-  if (userid && userid === getCookie(cookieIDUserid(userid))) {
-    state.loggedIn = true;
-    state.userid = userid;
+    const userid = getCookie(cookieUserid);
+    if (userid && userid === getCookie(cookieIDUserid(userid))) {
+      state.loggedIn = true;
+      state.userid = userid;
 
-    authReqState.userid = userid;
-
-    const user = retrieveUser(storageUserKey(userid));
-    if (user) {
-      const {
-        username,
-        first_name,
-        last_name,
-        email,
-        creation_time,
-        roles,
-        sessionid,
-      } = user;
-      Object.assign(state, {
-        username,
-        first_name,
-        last_name,
-        email,
-        creation_time,
-        roles,
-        sessionid,
-      });
+      const user = retrieveUser(storageUserKey(userid));
+      if (user) {
+        const {
+          username,
+          first_name,
+          last_name,
+          email,
+          creation_time,
+          roles,
+          sessionid,
+        } = user;
+        Object.assign(state, {
+          username,
+          first_name,
+          last_name,
+          email,
+          creation_time,
+          roles,
+          sessionid,
+        });
+      }
     }
-  }
 
-  return set(AuthState, state);
-};
+    return set(AuthState, state);
+  };
 
 const AuthMiddleware = (value) => {
   const v = Object.assign(
@@ -161,17 +155,19 @@ const AuthMiddleware = (value) => {
     {authReqChain: Promise.resolve(), authReqState: {}},
     value,
   );
-  const {headerCompass, authReqState} = v;
-  const apiTransformMiddleware = (transform) => (...args) => {
-    const req = transform(...args);
-    if (authReqState.userid) {
-      req.headers = Object.assign(
-        {[headerCompass]: authReqState.userid},
-        req.headers,
-      );
-    }
-    return req;
-  };
+  const {authReqState} = v;
+  const apiTransformMiddleware =
+    (transform) =>
+    (...args) => {
+      const req = transform(...args);
+      if (authReqState.accessToken) {
+        req.headers = Object.assign(
+          {Authorization: `Bearer ${authReqState.accessToken}`},
+          req.headers,
+        );
+      }
+      return req;
+    };
   return {
     ctxProvider: ({children}) => (
       <AuthCtx.Provider value={v}>{children}</AuthCtx.Provider>
@@ -227,7 +223,7 @@ const useLogout = () => {
   const logout = useCallback(() => {
     logoutCookies(ctx, loggedIn && userid);
     setAuth(defaultAuth);
-    ctx.authReqState.userid = null;
+    ctx.authReqState.accessToken = null;
   }, [ctx, setAuth, loggedIn, userid]);
   return logout;
 };
@@ -348,28 +344,23 @@ const useLogin = (username, password) => {
     if (err) {
       return [data, status, err];
     }
-    const {userid, sessionid, timeAuth, time} = data;
-    ctx.authReqState.userid = userid;
+    const {userid, accessToken, sessionid, timeAuth, time} = data;
+    ctx.authReqState.accessToken = accessToken;
     const [resUser, resRoles] = await Promise.all([
       execGetUser(),
       execGetRoles(),
     ]);
-    const {
-      username,
-      first_name,
-      last_name,
-      email,
-      creation_time,
-    } = Object.assign(
-      {
-        username: '',
-        first_name: '',
-        last_name: '',
-        email: '',
-        creation_time: 0,
-      },
-      resUser[0],
-    );
+    const {username, first_name, last_name, email, creation_time} =
+      Object.assign(
+        {
+          username: '',
+          first_name: '',
+          last_name: '',
+          email: '',
+          creation_time: 0,
+        },
+        resUser[0],
+      );
     const roles = resRoles[0] || [];
     const now = unixTime();
     storeUser(ctx.storageUserKey(userid), {
@@ -436,10 +427,11 @@ const useRelogin = () => {
         }
         return [data, status, err];
       }
-      const {userid, sessionid, timeAuth, time} = data;
+      const {userid, accessToken, sessionid, timeAuth, time} = data;
       if (userid !== auth.userid) {
         return [null, -1, defaultErr('Switched user')];
       }
+      ctx.authReqState.accessToken = accessToken;
       setAuth((state) => {
         storeUser(ctx.storageUserKey(state.userid), {
           username: state.username,
@@ -466,10 +458,11 @@ const useRelogin = () => {
       }
       return [data, status, err];
     }
-    const {userid, sessionid, timeAuth, refresh, time} = data;
+    const {userid, accessToken, sessionid, timeAuth, refresh, time} = data;
     if (userid !== auth.userid) {
       return [null, -1, defaultErr('Switched user')];
     }
+    ctx.authReqState.accessToken = accessToken;
     if (refresh) {
       setAuth((state) => {
         storeUser(ctx.storageUserKey(state.userid), {
@@ -542,31 +535,26 @@ const useSwitchAccount = (targetUserid) => {
     if (err) {
       return [data, status, err];
     }
-    const {userid, sessionid, timeAuth, time} = data;
+    const {userid, accessToken, sessionid, timeAuth, time} = data;
     if (userid !== targetUserid) {
       return [null, -1, defaultErr('Switched user')];
     }
-    ctx.authReqState.userid = userid;
+    ctx.authReqState.accessToken = accessToken;
     const [resUser, resRoles] = await Promise.all([
       execGetUser(),
       execGetRoles(),
     ]);
-    const {
-      username,
-      first_name,
-      last_name,
-      email,
-      creation_time,
-    } = Object.assign(
-      {
-        username: '',
-        first_name: '',
-        last_name: '',
-        email: '',
-        creation_time: 0,
-      },
-      resUser[0],
-    );
+    const {username, first_name, last_name, email, creation_time} =
+      Object.assign(
+        {
+          username: '',
+          first_name: '',
+          last_name: '',
+          email: '',
+          creation_time: 0,
+        },
+        resUser[0],
+      );
     const roles = resRoles[0] || [];
     const now = unixTime();
     storeUser(ctx.storageUserKey(userid), {

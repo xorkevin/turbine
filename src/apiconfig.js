@@ -36,10 +36,12 @@ const turbine = (url = '/u') => ({
           expectdata: true,
           selector: (_status, data) => {
             const {sub: userid, exp: time, auth_time: timeAuth} = data.claims;
+            const accessToken = data.access_token;
             const sessionid = data.session_token;
             const refresh = data.refresh;
             return {
               userid,
+              accessToken,
               sessionid,
               timeAuth,
               refresh,
@@ -54,10 +56,12 @@ const turbine = (url = '/u') => ({
           expectdata: true,
           selector: (_status, data) => {
             const {sub: userid, exp: time, auth_time: timeAuth} = data.claims;
+            const accessToken = data.access_token;
             const sessionid = data.session_token;
             const refresh = data.refresh;
             return {
               userid,
+              accessToken,
               sessionid,
               timeAuth,
               refresh,
@@ -72,10 +76,12 @@ const turbine = (url = '/u') => ({
           expectdata: true,
           selector: (_status, data) => {
             const {sub: userid, exp: time, auth_time: timeAuth} = data.claims;
+            const accessToken = data.access_token;
             const sessionid = data.session_token;
             const refresh = data.refresh;
             return {
               userid,
+              accessToken,
               sessionid,
               timeAuth,
               refresh,
@@ -100,10 +106,12 @@ const turbine = (url = '/u') => ({
                   exp: time,
                   auth_time: timeAuth,
                 } = data.claims;
+                const accessToken = data.access_token;
                 const sessionid = data.session_token;
                 const refresh = data.refresh;
                 return {
                   userid,
+                  accessToken,
                   sessionid,
                   timeAuth,
                   refresh,
@@ -125,10 +133,12 @@ const turbine = (url = '/u') => ({
                   exp: time,
                   auth_time: timeAuth,
                 } = data.claims;
+                const accessToken = data.access_token;
                 const sessionid = data.session_token;
                 const refresh = data.refresh;
                 return {
                   userid,
+                  accessToken,
                   sessionid,
                   timeAuth,
                   refresh,
