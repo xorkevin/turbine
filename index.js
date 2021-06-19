@@ -43,7 +43,6 @@ const logoutCookies = (ctx, userid) => {
   setCookie(ctx.cookieAccessToken, 'invalid', ctx.routeAPI, 0);
   setCookie(ctx.cookieRefreshToken, 'invalid', ctx.routeAuth, 0);
   if (userid) {
-    setCookie(ctx.cookieIDAccessToken(userid), 'invalid', ctx.routeAPI, 0);
     setCookie(ctx.cookieRefreshToken, 'invalid', ctx.routeIDAuth(userid), 0);
     setCookie(ctx.cookieIDUserid(userid), 'invalid', ctx.routeRoot, 0);
   }
@@ -66,9 +65,7 @@ const TurbineDefaultOpts = Object.freeze({
   cookieUserid: 'userid',
   cookieAccessToken: 'access_token',
   cookieRefreshToken: 'refresh_token',
-  cookieUseridPrefix: `userid_`,
   cookieIDUserid: (userid) => `userid_${userid}`,
-  cookieIDAccessToken: (userid) => `access_token_${userid}`,
   routeRoot: '/',
   routeAPI: '/api',
   routeAuth: '/api/u/auth',
@@ -205,7 +202,7 @@ const useAccounts = () => {
   const accounts = useMemo(
     () =>
       Object.entries(
-        filterCookies(([k, v]) => k === ctx.cookieUseridPrefix + v),
+        filterCookies(([k, v]) => k === ctx.cookieIDUserid(v)),
       ).map(([_k, v]) => v),
     [ctx],
   );
