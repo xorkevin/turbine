@@ -97,6 +97,7 @@ const defaultAuth = Object.freeze({
   last_name: '',
   email: '',
   creation_time: 0,
+  otp_enabled: false,
   roles: [],
   sessionid: '',
   timeAuth: 0,
@@ -127,6 +128,7 @@ const makeInitAuthState =
           last_name,
           email,
           creation_time,
+          otp_enabled,
           roles,
           sessionid,
         } = user;
@@ -136,6 +138,7 @@ const makeInitAuthState =
           last_name,
           email,
           creation_time,
+          otp_enabled,
           roles,
           sessionid,
         });
@@ -233,6 +236,7 @@ const useGetUser = () => {
     last_name: '',
     email: '',
     creation_time: 0,
+    otp_enabled: false,
   });
   return [apiState, execute];
 };
@@ -247,7 +251,8 @@ const useRefreshUser = () => {
     if (err) {
       return;
     }
-    const {username, first_name, last_name, email, creation_time} = data;
+    const {username, first_name, last_name, email, creation_time, otp_enabled} =
+      data;
     setAuth((state) => {
       storeUser(ctx.storageUserKey(state.userid), {
         username,
@@ -255,6 +260,7 @@ const useRefreshUser = () => {
         last_name,
         email,
         creation_time,
+        otp_enabled,
         roles: state.roles,
         sessionid: state.sessionid,
       });
@@ -264,6 +270,7 @@ const useRefreshUser = () => {
         last_name,
         email,
         creation_time,
+        otp_enabled,
       });
     });
   }, [ctx, setAuth, execute]);
@@ -303,6 +310,7 @@ const useRefreshRoles = () => {
         last_name: state.last_name,
         email: state.email,
         creation_time: state.creation_time,
+        otp_enabled: state.otp_enabled,
         roles: data,
         sessionid: state.sessionid,
       });
@@ -347,7 +355,7 @@ const useLogin = (username, password) => {
       execGetUser(),
       execGetRoles(),
     ]);
-    const {username, first_name, last_name, email, creation_time} =
+    const {username, first_name, last_name, email, creation_time, otp_enabled} =
       Object.assign(
         {
           username: '',
@@ -355,6 +363,7 @@ const useLogin = (username, password) => {
           last_name: '',
           email: '',
           creation_time: 0,
+          otp_enabled: false,
         },
         resUser[0],
       );
@@ -366,6 +375,7 @@ const useLogin = (username, password) => {
       last_name,
       email,
       creation_time,
+      otp_enabled,
       roles,
       sessionid,
     });
@@ -377,6 +387,7 @@ const useLogin = (username, password) => {
       last_name,
       email,
       creation_time,
+      otp_enabled,
       roles,
       sessionid,
       timeAuth,
@@ -436,6 +447,7 @@ const useRelogin = () => {
           last_name: state.last_name,
           email: state.email,
           creation_time: state.creation_time,
+          otp_enabled: state.otp_enabled,
           roles: state.roles,
           sessionid,
         });
@@ -468,6 +480,7 @@ const useRelogin = () => {
           last_name: state.last_name,
           email: state.email,
           creation_time: state.creation_time,
+          otp_enabled: state.otp_enabled,
           roles: state.roles,
           sessionid,
         });
@@ -486,6 +499,7 @@ const useRelogin = () => {
           last_name: state.last_name,
           email: state.email,
           creation_time: state.creation_time,
+          otp_enabled: state.otp_enabled,
           roles: state.roles,
           sessionid,
         });
@@ -541,7 +555,7 @@ const useSwitchAccount = (targetUserid) => {
       execGetUser(),
       execGetRoles(),
     ]);
-    const {username, first_name, last_name, email, creation_time} =
+    const {username, first_name, last_name, email, creation_time, otp_enabled} =
       Object.assign(
         {
           username: '',
@@ -549,6 +563,7 @@ const useSwitchAccount = (targetUserid) => {
           last_name: '',
           email: '',
           creation_time: 0,
+          otp_enabled: false,
         },
         resUser[0],
       );
@@ -560,6 +575,7 @@ const useSwitchAccount = (targetUserid) => {
       last_name,
       email,
       creation_time,
+      otp_enabled,
       roles,
       sessionid,
     });
@@ -571,6 +587,7 @@ const useSwitchAccount = (targetUserid) => {
       last_name,
       email,
       creation_time,
+      otp_enabled,
       roles,
       sessionid,
       timeAuth,
