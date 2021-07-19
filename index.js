@@ -328,12 +328,12 @@ const useRefreshRoles = () => {
   return [apiState, refreshRoles];
 };
 
-const useLogin = (username, password) => {
+const useLogin = (username, password, code, backup) => {
   const ctx = useContext(AuthCtx);
   const setAuth = useSetRecoilState(AuthState);
   const [apiState, execute] = useAPICall(
     ctx.selectAPILogin,
-    [username, password],
+    [username, password, code, backup],
     {
       userid: '',
       sessionid: '',
