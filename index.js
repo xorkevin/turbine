@@ -618,9 +618,9 @@ const useWrapAuth = (callback) => {
 
   const exec = useCallback(
     async (...args) => {
-      const [_data, _status, err] = await relogin();
+      const [data, status, err] = await relogin();
       if (err) {
-        return err;
+        return [data, status, err];
       }
       return callback(...args);
     },
