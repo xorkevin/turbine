@@ -35,7 +35,7 @@
     "recoil": "^0.3.1"
   },
   "peerDependencies": {
-    "@xorkevin/substation": "^0.1.6",
+    "@xorkevin/substation": "^0.1.7",
     "react": "^17.0.1",
     "react-router": "^5.2.0",
     "react-router-dom": "^5.2.0",
