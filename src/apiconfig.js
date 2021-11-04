@@ -7,7 +7,7 @@ const turbine = (url = '/u') => ({
         get: {
           url: '',
           method: 'GET',
-          expectdata: true,
+          expectjson: true,
           err: 'Unable to get user info',
         },
         roleint: {
@@ -18,8 +18,8 @@ const turbine = (url = '/u') => ({
               roles: roles.join(','),
             },
           }),
-          expectdata: true,
-          selector: (_status, data) => data && data.roles,
+          expectjson: true,
+          selector: (_res, data) => data && data.roles,
           err: 'Could not get user roles',
         },
       },
@@ -33,8 +33,8 @@ const turbine = (url = '/u') => ({
           transformer: (username, password, code, backup) => ({
             json: {username, password, code, backup},
           }),
-          expectdata: true,
-          selector: (_status, data) => {
+          expectjson: true,
+          selector: (_res, data) => {
             const {sub: userid, exp: time, auth_time: timeAuth} = data.claims;
             const accessToken = data.access_token;
             const sessionid = data.session_token;
@@ -53,8 +53,8 @@ const turbine = (url = '/u') => ({
         exchange: {
           url: '/exchange',
           method: 'POST',
-          expectdata: true,
-          selector: (_status, data) => {
+          expectjson: true,
+          selector: (_res, data) => {
             const {sub: userid, exp: time, auth_time: timeAuth} = data.claims;
             const accessToken = data.access_token;
             const sessionid = data.session_token;
@@ -73,8 +73,8 @@ const turbine = (url = '/u') => ({
         refresh: {
           url: '/refresh',
           method: 'POST',
-          expectdata: true,
-          selector: (_status, data) => {
+          expectjson: true,
+          selector: (_res, data) => {
             const {sub: userid, exp: time, auth_time: timeAuth} = data.claims;
             const accessToken = data.access_token;
             const sessionid = data.session_token;
@@ -99,8 +99,8 @@ const turbine = (url = '/u') => ({
               transformer: (userid) => ({
                 params: [userid],
               }),
-              expectdata: true,
-              selector: (_status, data) => {
+              expectjson: true,
+              selector: (_res, data) => {
                 const {
                   sub: userid,
                   exp: time,
@@ -126,8 +126,8 @@ const turbine = (url = '/u') => ({
               transformer: (userid) => ({
                 params: [userid],
               }),
-              expectdata: true,
-              selector: (_status, data) => {
+              expectjson: true,
+              selector: (_res, data) => {
                 const {
                   sub: userid,
                   exp: time,

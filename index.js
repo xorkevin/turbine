@@ -247,7 +247,7 @@ const useRefreshUser = () => {
   const [apiState, execute] = useGetUser();
 
   const refreshUserCall = useCallback(async () => {
-    const [data, _status, err] = await execute();
+    const [data, _res, err] = await execute();
     if (err) {
       return;
     }
@@ -299,7 +299,7 @@ const useRefreshRoles = () => {
   const [apiState, execute] = useGetRoles();
 
   const refreshRolesCall = useCallback(async () => {
-    const [data, _status, err] = await execute();
+    const [data, _res, err] = await execute();
     if (err) {
       return;
     }
@@ -345,9 +345,9 @@ const useLogin = (username, password, code, backup) => {
   const [_apiState_roles, execGetRoles] = useGetRoles();
 
   const loginCall = useCallback(async () => {
-    const [data, status, err] = await execute();
+    const [data, res, err] = await execute();
     if (err) {
-      return [data, status, err];
+      return [data, res, err];
     }
     const {userid, accessToken, sessionid, timeAuth, time} = data;
     ctx.authReqState.accessToken = accessToken;
@@ -394,7 +394,7 @@ const useLogin = (username, password, code, backup) => {
       timeAccess: time,
       timeRefresh: now + ctx.durationRefresh,
     });
-    return [data, status, err];
+    return [data, res, err];
   }, [ctx, setAuth, execute, execGetUser, execGetRoles]);
 
   const login = useCallback(() => {
@@ -416,28 +416,28 @@ const useRelogin = () => {
 
   const reloginCall = useCallback(async () => {
     if (!auth.loggedIn) {
-      return [null, -1, defaultErr('Not logged in')];
+      return [null, null, defaultErr('Not logged in')];
     }
     const now = unixTime();
     if (now + 5 < auth.timeAccess) {
-      return [null, 0, null];
+      return [null, null, null];
     }
     const isLoggedIn = getCookie(ctx.cookieIDUserid(auth.userid));
     if (!isLoggedIn) {
       execLogout();
-      return [null, -1, defaultErr('Session expired')];
+      return [null, null, defaultErr('Session expired')];
     }
     if (now + 5 > auth.timeRefresh) {
-      const [data, status, err] = await execRe(auth.userid);
+      const [data, res, err] = await execRe(auth.userid);
       if (err) {
-        if (status > 0 && status < 500) {
+        if (res.status > 0 && res.status < 500) {
           execLogout();
         }
-        return [data, status, err];
+        return [data, res, err];
       }
       const {userid, accessToken, sessionid, timeAuth, time} = data;
       if (userid !== auth.userid) {
-        return [null, -1, defaultErr('Switched user')];
+        return [null, null, defaultErr('Switched user')];
       }
       ctx.authReqState.accessToken = accessToken;
       setAuth((state) => {
@@ -458,18 +458,18 @@ const useRelogin = () => {
           timeRefresh: now + ctx.durationRefresh,
         });
       });
-      return [data, status, err];
+      return [data, res, err];
     }
-    const [data, status, err] = await execEx(auth.userid);
+    const [data, res, err] = await execEx(auth.userid);
     if (err) {
-      if (status > 0 && status < 500) {
+      if (res.status > 0 && res.status < 500) {
         execLogout();
       }
-      return [data, status, err];
+      return [data, res, err];
     }
     const {userid, accessToken, sessionid, timeAuth, refresh, time} = data;
     if (userid !== auth.userid) {
-      return [null, -1, defaultErr('Switched user')];
+      return [null, null, defaultErr('Switched user')];
     }
     ctx.authReqState.accessToken = accessToken;
     if (refresh) {
@@ -510,7 +510,7 @@ const useRelogin = () => {
         });
       });
     }
-    return [data, status, err];
+    return [data, res, err];
   }, [ctx, auth, setAuth, execEx, execRe, execLogout]);
 
   const relogin = useCallback(() => {
@@ -536,19 +536,19 @@ const useSwitchAccount = (targetUserid) => {
   const authUserid = auth.userid;
   const switchCall = useCallback(async () => {
     if (targetUserid === authUserid) {
-      return [null, 0, null];
+      return [null, null, null];
     }
     const isLoggedIn = getCookie(ctx.cookieIDUserid(targetUserid));
     if (!isLoggedIn) {
-      return [null, -1, defaultErr('Session expired')];
+      return [null, null, defaultErr('Session expired')];
     }
-    const [data, status, err] = await execute();
+    const [data, res, err] = await execute();
     if (err) {
-      return [data, status, err];
+      return [data, res, err];
     }
     const {userid, accessToken, sessionid, timeAuth, time} = data;
     if (userid !== targetUserid) {
-      return [null, -1, defaultErr('Switched user')];
+      return [null, null, defaultErr('Switched user')];
     }
     ctx.authReqState.accessToken = accessToken;
     const [resUser, resRoles] = await Promise.all([
@@ -594,7 +594,7 @@ const useSwitchAccount = (targetUserid) => {
       timeAccess: time,
       timeRefresh: now + ctx.durationRefresh,
     });
-    return [data, status, err];
+    return [data, res, err];
   }, [
     ctx,
     targetUserid,
@@ -618,9 +618,9 @@ const useWrapAuth = (callback) => {
 
   const exec = useCallback(
     async (...args) => {
-      const [data, status, err] = await relogin();
+      const [data, res, err] = await relogin();
       if (err) {
-        return [data, status, err];
+        return [data, res, err];
       }
       return callback(...args);
     },
@@ -642,7 +642,7 @@ const useAuthResource = (selector, args, initState, opts = {}) => {
 
   const reloginhook = useCallback(
     async (args, opts) => {
-      const [_data, _status, err] = await relogin();
+      const [_data, _res, err] = await relogin();
       if (opts.signal && opts.signal.aborted) {
         return;
       }
@@ -675,7 +675,7 @@ const useRefreshAuth = () => {
     }
     if (loggedIn) {
       (async () => {
-        const [_data, _status, err] = await relogin();
+        const [_data, _res, err] = await relogin();
         if (err) {
           return;
         }
