@@ -31,7 +31,7 @@ const turbine = (url = '/u') => ({
           url: '/login',
           method: 'POST',
           transformer: (username, password, code, backup) => ({
-            body: {username, password, code, backup},
+            json: {username, password, code, backup},
           }),
           expectdata: true,
           selector: (_status, data) => {

@@ -643,7 +643,7 @@ const useAuthResource = (selector, args, initState, opts = {}) => {
   const reloginhook = useCallback(
     async (args, opts) => {
       const [_data, _status, err] = await relogin();
-      if (opts.cancelRef && opts.cancelRef.current) {
+      if (opts.signal && opts.signal.aborted) {
         return;
       }
       if (err) {
