@@ -414,109 +414,115 @@ const useRelogin = () => {
   const execRe = useAPI(ctx.selectAPIRefresh);
   const execLogout = useLogout();
 
-  const reloginCall = useCallback(async () => {
-    if (!auth.loggedIn) {
-      return [null, null, defaultErr('Not logged in')];
-    }
-    const now = unixTime();
-    if (now + 5 < auth.timeAccess) {
-      return [null, null, null];
-    }
-    const isLoggedIn = getCookie(ctx.cookieIDUserid(auth.userid));
-    if (!isLoggedIn) {
-      execLogout();
-      return [null, null, defaultErr('Session expired')];
-    }
-    if (now + 5 > auth.timeRefresh) {
-      const [data, res, err] = await execRe({}, auth.userid);
+  const reloginCall = useCallback(
+    async ({signal} = {}) => {
+      if (!auth.loggedIn) {
+        return [null, null, defaultErr('Not logged in')];
+      }
+      const now = unixTime();
+      if (now + 5 < auth.timeAccess) {
+        return [null, null, null];
+      }
+      const isLoggedIn = getCookie(ctx.cookieIDUserid(auth.userid));
+      if (!isLoggedIn) {
+        execLogout();
+        return [null, null, defaultErr('Session expired')];
+      }
+      if (now + 5 > auth.timeRefresh) {
+        const [data, res, err] = await execRe({signal}, auth.userid);
+        if (err) {
+          if (res && res.status > 0 && res.status < 500) {
+            execLogout();
+          }
+          return [data, res, err];
+        }
+        const {userid, accessToken, sessionid, timeAuth, time} = data;
+        if (userid !== auth.userid) {
+          return [null, null, defaultErr('Switched user')];
+        }
+        ctx.authReqState.accessToken = accessToken;
+        setAuth((state) => {
+          storeUser(ctx.storageUserKey(state.userid), {
+            username: state.username,
+            first_name: state.first_name,
+            last_name: state.last_name,
+            email: state.email,
+            creation_time: state.creation_time,
+            otp_enabled: state.otp_enabled,
+            roles: state.roles,
+            sessionid,
+          });
+          return Object.assign({}, state, {
+            sessionid,
+            timeAuth,
+            timeAccess: time,
+            timeRefresh: now + ctx.durationRefresh,
+          });
+        });
+        return [data, res, err];
+      }
+      const [data, res, err] = await execEx({signal}, auth.userid);
       if (err) {
-        if (res.status > 0 && res.status < 500) {
+        if (res && res.status > 0 && res.status < 500) {
           execLogout();
         }
         return [data, res, err];
       }
-      const {userid, accessToken, sessionid, timeAuth, time} = data;
+      const {userid, accessToken, sessionid, timeAuth, refresh, time} = data;
       if (userid !== auth.userid) {
         return [null, null, defaultErr('Switched user')];
       }
       ctx.authReqState.accessToken = accessToken;
-      setAuth((state) => {
-        storeUser(ctx.storageUserKey(state.userid), {
-          username: state.username,
-          first_name: state.first_name,
-          last_name: state.last_name,
-          email: state.email,
-          creation_time: state.creation_time,
-          otp_enabled: state.otp_enabled,
-          roles: state.roles,
-          sessionid,
+      if (refresh) {
+        setAuth((state) => {
+          storeUser(ctx.storageUserKey(state.userid), {
+            username: state.username,
+            first_name: state.first_name,
+            last_name: state.last_name,
+            email: state.email,
+            creation_time: state.creation_time,
+            otp_enabled: state.otp_enabled,
+            roles: state.roles,
+            sessionid,
+          });
+          return Object.assign({}, state, {
+            sessionid,
+            timeAuth,
+            timeAccess: time,
+            timeRefresh: now + ctx.durationRefresh,
+          });
         });
-        return Object.assign({}, state, {
-          sessionid,
-          timeAuth,
-          timeAccess: time,
-          timeRefresh: now + ctx.durationRefresh,
+      } else {
+        setAuth((state) => {
+          storeUser(ctx.storageUserKey(state.userid), {
+            username: state.username,
+            first_name: state.first_name,
+            last_name: state.last_name,
+            email: state.email,
+            creation_time: state.creation_time,
+            otp_enabled: state.otp_enabled,
+            roles: state.roles,
+            sessionid,
+          });
+          return Object.assign({}, state, {
+            sessionid,
+            timeAuth,
+            timeAccess: time,
+          });
         });
-      });
-      return [data, res, err];
-    }
-    const [data, res, err] = await execEx({}, auth.userid);
-    if (err) {
-      if (res.status > 0 && res.status < 500) {
-        execLogout();
       }
       return [data, res, err];
-    }
-    const {userid, accessToken, sessionid, timeAuth, refresh, time} = data;
-    if (userid !== auth.userid) {
-      return [null, null, defaultErr('Switched user')];
-    }
-    ctx.authReqState.accessToken = accessToken;
-    if (refresh) {
-      setAuth((state) => {
-        storeUser(ctx.storageUserKey(state.userid), {
-          username: state.username,
-          first_name: state.first_name,
-          last_name: state.last_name,
-          email: state.email,
-          creation_time: state.creation_time,
-          otp_enabled: state.otp_enabled,
-          roles: state.roles,
-          sessionid,
-        });
-        return Object.assign({}, state, {
-          sessionid,
-          timeAuth,
-          timeAccess: time,
-          timeRefresh: now + ctx.durationRefresh,
-        });
-      });
-    } else {
-      setAuth((state) => {
-        storeUser(ctx.storageUserKey(state.userid), {
-          username: state.username,
-          first_name: state.first_name,
-          last_name: state.last_name,
-          email: state.email,
-          creation_time: state.creation_time,
-          otp_enabled: state.otp_enabled,
-          roles: state.roles,
-          sessionid,
-        });
-        return Object.assign({}, state, {
-          sessionid,
-          timeAuth,
-          timeAccess: time,
-        });
-      });
-    }
-    return [data, res, err];
-  }, [ctx, auth, setAuth, execEx, execRe, execLogout]);
+    },
+    [ctx, auth, setAuth, execEx, execRe, execLogout],
+  );
 
-  const relogin = useCallback(() => {
-    ctx.authReqChain = ctx.authReqChain.then(reloginCall);
-    return ctx.authReqChain;
-  }, [ctx, reloginCall]);
+  const relogin = useCallback(
+    ({signal} = {}) => {
+      ctx.authReqChain = ctx.authReqChain.then(() => reloginCall({signal}));
+      return ctx.authReqChain;
+    },
+    [ctx, reloginCall],
+  );
 
   return relogin;
 };
@@ -642,7 +648,7 @@ const useAuthResource = (selector, args, initState, opts = {}) => {
 
   const reloginhook = useCallback(
     async (args, opts) => {
-      const [_data, _res, err] = await relogin();
+      const [_data, _res, err] = await relogin({signal: opts.signal});
       if (opts.signal && opts.signal.aborted) {
         return;
       }
