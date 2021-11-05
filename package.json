@@ -1,6 +1,6 @@
 {
   "name": "@xorkevin/turbine",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "description": "a recoil based authentication engine for governor",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
@@ -35,7 +35,7 @@
     "recoil": "^0.3.1"
   },
   "peerDependencies": {
-    "@xorkevin/substation": "^0.1.7",
+    "@xorkevin/substation": "^0.1.8",
     "react": "^17.0.1",
     "react-router": "^5.2.0",
     "react-router-dom": "^5.2.0",
