@@ -428,7 +428,7 @@ const useRelogin = () => {
       return [null, null, defaultErr('Session expired')];
     }
     if (now + 5 > auth.timeRefresh) {
-      const [data, res, err] = await execRe(auth.userid);
+      const [data, res, err] = await execRe({}, auth.userid);
       if (err) {
         if (res.status > 0 && res.status < 500) {
           execLogout();
@@ -460,7 +460,7 @@ const useRelogin = () => {
       });
       return [data, res, err];
     }
-    const [data, res, err] = await execEx(auth.userid);
+    const [data, res, err] = await execEx({}, auth.userid);
     if (err) {
       if (res.status > 0 && res.status < 500) {
         execLogout();
