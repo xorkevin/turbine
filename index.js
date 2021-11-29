@@ -431,9 +431,6 @@ const useRelogin = () => {
       if (now + 5 > auth.timeRefresh) {
         const [data, res, err] = await execRe({signal}, auth.userid);
         if (err) {
-          if (res && res.status > 0 && res.status < 500) {
-            execLogout();
-          }
           return [data, res, err];
         }
         const {userid, accessToken, sessionid, timeAuth, time} = data;
@@ -463,9 +460,6 @@ const useRelogin = () => {
       }
       const [data, res, err] = await execEx({signal}, auth.userid);
       if (err) {
-        if (res && res.status > 0 && res.status < 500) {
-          execLogout();
-        }
         return [data, res, err];
       }
       const {userid, accessToken, sessionid, timeAuth, refresh, time} = data;
