@@ -7,7 +7,7 @@ import {
   useMemo,
   useContext,
 } from 'react';
-import {useLocation, useHistory} from 'react-router-dom';
+import {useLocation, useNavigate} from 'react-router-dom';
 import {atom, useRecoilState, useRecoilValue, useSetRecoilState} from 'recoil';
 import {
   useAPI,
@@ -182,7 +182,7 @@ const AuthMiddleware = (value) => {
 const useProtectedRedir = () => {
   const ctx = useContext(AuthCtx);
   const {search} = useLocation();
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const redirect = useCallback(() => {
     const searchParams = getSearchParams(search);
@@ -191,11 +191,8 @@ const useProtectedRedir = () => {
     if (!redir) {
       redir = ctx.pathHome;
     }
-    history.replace({
-      pathname: redir,
-      search: searchParamsToString(searchParams),
-    });
-  }, [ctx, search, history]);
+    navigate(redir + searchParamsToString(searchParams), {replace: true});
+  }, [ctx, search, navigate]);
 
   return redirect;
 };
@@ -703,7 +700,7 @@ const useIntersectRoles = (roleIntersect) => {
 const Protected = (child, allowedAuth) => {
   const Inner = (props) => {
     const {pathname, search} = useLocation();
-    const history = useHistory();
+    const navigate = useNavigate();
     const ctx = useContext(AuthCtx);
     const {loggedIn, roles} = useAuthValue();
 
@@ -714,12 +711,11 @@ const Protected = (child, allowedAuth) => {
         if (pathname !== ctx.pathHome) {
           searchParams.set(ctx.authRedirParam, pathname);
         }
-        history.replace({
-          pathname: ctx.pathLogin,
-          search: searchParamsToString(searchParams),
+        navigate(ctx.pathLogin + searchParamsToString(searchParams), {
+          replace: true,
         });
       }
-    }, [ctx, loggedIn, pathname, search, history]);
+    }, [ctx, loggedIn, pathname, search, navigate]);
 
     const authorized = useMemo(() => {
       if (!allowedAuth) {
